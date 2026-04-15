@@ -100,6 +100,18 @@ pub struct Config {
     pub no_edge_max_open_orders: usize,
     /// Path to the persisted `NoEdgeState` JSON file.
     pub no_edge_state_path: String,
+
+    // -------- Phase 3 NO-edge farmer (EdgeBook quote policy) --------
+    /// Minimum per-share edge (basis points) the EdgeBook requires before it
+    /// will emit a signal. 500 bps = 5.00% under the fair NO probability.
+    pub no_edge_min_edge_bps: u32,
+    /// Minimum |Δprice| in cents between the last emitted signal and the new
+    /// target before EdgeBook bothers to re-emit. Prevents chattering reposts
+    /// on sub-cent book jitter. Default 2¢.
+    pub no_edge_repost_threshold_cents: u32,
+    /// Minimum seconds between successive EdgeBook signals for the same token.
+    /// Rate-limits the quoter / executor downstream. Default 5s.
+    pub no_edge_repost_cooldown_secs: u64,
 }
 
 impl Default for Config {
@@ -145,6 +157,10 @@ impl Default for Config {
             no_edge_max_total_deployed_usdc: 2000.0,
             no_edge_max_open_orders: 60,
             no_edge_state_path: "weather-bot/no_edge_state.json".to_string(),
+
+            no_edge_min_edge_bps: 500,
+            no_edge_repost_threshold_cents: 2,
+            no_edge_repost_cooldown_secs: 5,
         }
     }
 }
@@ -298,6 +314,23 @@ impl Config {
         }
         if let Ok(v) = std::env::var("NO_EDGE_STATE_PATH") {
             cfg.no_edge_state_path = v;
+        }
+
+        // --- Phase 3 NO-edge farmer (EdgeBook quote policy) ---
+        if let Ok(v) = std::env::var("NO_EDGE_MIN_EDGE_BPS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_min_edge_bps = n;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_REPOST_THRESHOLD_CENTS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_repost_threshold_cents = n;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_REPOST_COOLDOWN_SECS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_repost_cooldown_secs = n;
+            }
         }
 
         // Invariant: paper_mode forces simulation

@@ -2,6 +2,7 @@ mod alerts;
 mod climo;
 mod config;
 mod ctf_math;
+mod edge_book;
 mod executor;
 mod mint_executor;
 mod paper;
