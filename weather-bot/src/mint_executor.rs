@@ -150,6 +150,7 @@ mod tests {
                 token_id_no: U256::from(2u64),
             }],
             detected_at_ns: 0,
+            source: crate::types::DiscoverySource::OnChain,
         }
     }
 

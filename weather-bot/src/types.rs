@@ -6,7 +6,30 @@
 //! `tokio::sync::mpsc::UnboundedSender` channels without fuss.
 
 use alloy_primitives::{Address, B256, U256};
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
+
+/// How a [`WeatherEvent`] entered the pipeline. The on-chain live stream is
+/// the canonical path; the `BootstrapReplay` variant is set by
+/// [`crate::no_edge::bootstrap`] for events we learned about via the one-shot
+/// Gamma snapshot at startup.
+///
+/// Phase 2 mint-and-dump **must skip** `BootstrapReplay` events — the mint
+/// window is 12–36 h pre-settlement and is already gone for anything old
+/// enough to appear in the `active=true` snapshot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiscoverySource {
+    /// Default — from `watchers::onchain` live stream.
+    OnChain,
+    /// From `no_edge::bootstrap` — Phase 2 must skip these.
+    BootstrapReplay,
+}
+
+impl Default for DiscoverySource {
+    fn default() -> Self {
+        DiscoverySource::OnChain
+    }
+}
 
 /// Classification of the CTF market we just detected.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +90,10 @@ pub struct WeatherEvent {
     /// Set exactly once, as close to the socket as possible, by
     /// `run_onchain_watcher`.
     pub detected_at_ns: u128,
+    /// How this event was discovered. [`DiscoverySource::OnChain`] is the
+    /// live-stream default; [`crate::no_edge::bootstrap`] tags snapshot
+    /// events [`DiscoverySource::BootstrapReplay`] so Phase 2 can skip them.
+    pub source: DiscoverySource,
 }
 
 /// Sender handed to `run_onchain_watcher` — upstream owns the receiver.
