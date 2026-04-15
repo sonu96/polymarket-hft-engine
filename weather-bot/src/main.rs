@@ -5,6 +5,7 @@ mod ctf_math;
 mod edge_book;
 mod executor;
 mod mint_executor;
+mod no_edge;
 mod order_sink;
 mod paper;
 mod portfolio;

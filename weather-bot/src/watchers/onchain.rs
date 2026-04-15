@@ -19,7 +19,7 @@
 
 use crate::ctf_math::{neg_risk_bucket_condition_id, neg_risk_bucket_token_ids, NEG_RISK_ADAPTER};
 use crate::scanner::extract_temp_label;
-use crate::types::{now_ns, BucketInfo, EventKind, WeatherEvent, WeatherEventSender};
+use crate::types::{now_ns, BucketInfo, DiscoverySource, EventKind, WeatherEvent, WeatherEventSender};
 use crate::weather_filter::parse_weather_slug;
 use alloy_primitives::{B256, U256};
 use futures_util::{SinkExt, StreamExt};
@@ -304,6 +304,7 @@ async fn emit_weather_event(
         oracle: NEG_RISK_ADAPTER,
         buckets,
         detected_at_ns: pm.first_seen_ns,
+        source: DiscoverySource::OnChain,
     };
 
     let _ = parse_weather_slug; // weather_filter available for the gamma-lookup step

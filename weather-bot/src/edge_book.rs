@@ -650,6 +650,7 @@ mod tests {
             oracle: Address::ZERO,
             buckets,
             detected_at_ns: now_ns(),
+            source: crate::types::DiscoverySource::OnChain,
         }
     }
 
@@ -668,6 +669,7 @@ mod tests {
             oracle: Address::ZERO,
             buckets,
             detected_at_ns: now_ns(),
+            source: crate::types::DiscoverySource::OnChain,
         }
     }
 
