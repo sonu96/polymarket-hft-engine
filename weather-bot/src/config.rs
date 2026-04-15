@@ -70,6 +70,18 @@ pub struct Config {
     /// "revert to forecast-only σ" tick (`remaining_var_frac = 1.0`) for
     /// that station and keeps trying. Default 900 (15 min = 3 missed cycles).
     pub no_edge_nowcast_staleness_kill_secs: u64,
+    /// Open-Meteo forecast poll cadence (seconds). Default 1800 = 30 min.
+    pub no_edge_forecast_poll_secs: u64,
+    /// How many days into the future to fetch forecasts for, inclusive of
+    /// today (`days_ahead = 0..=lookahead`). Default 2.
+    pub no_edge_lookahead_days: u32,
+    /// Multiplier applied to the ensemble σ before emitting a `ForecastTick`.
+    /// Default 1.0 — bumped after 14 days of paper-mode calibration if
+    /// ensemble proves under-dispersive at tails (typical correction
+    /// 1.15–1.35 per design doc §3.5).
+    pub no_edge_sigma_scale: f64,
+    /// City slugs to poll. Empty (the default) means "every seeded city".
+    pub no_edge_cities: Vec<String>,
 
     // -------- Phase 3 NO-edge farmer (portfolio caps) --------
     // These are deliberately separate from `daily_cap_usdc` (Phase 2's mint
@@ -121,17 +133,18 @@ impl Default for Config {
             paper_max_concurrent_events: 8,
             paper_log_path: "paper_run.log".to_string(),
 
-<<<<<<< HEAD
             no_edge_metar_poll_secs: 300,
             no_edge_nowcast_staleness_kill_secs: 900,
-=======
+            no_edge_forecast_poll_secs: 1800,
+            no_edge_lookahead_days: 2,
+            no_edge_sigma_scale: 1.0,
+            no_edge_cities: Vec::new(),
             no_edge_max_notional_per_market_usdc: 150.0,
             no_edge_max_notional_per_event_usdc: 500.0,
             no_edge_max_notional_per_city_usdc: 800.0,
             no_edge_max_total_deployed_usdc: 2000.0,
             no_edge_max_open_orders: 60,
             no_edge_state_path: "weather-bot/no_edge_state.json".to_string(),
->>>>>>> 2d61d16 (feat(phase3,#8): portfolio facade + NoEdgeState)
         }
     }
 }
@@ -223,7 +236,7 @@ impl Config {
             cfg.paper_log_path = v;
         }
 
-<<<<<<< HEAD
+        // --- Phase 3 NO-edge farmer (watchers) ---
         if let Ok(v) = std::env::var("NO_EDGE_METAR_POLL_SECS") {
             if let Ok(n) = v.parse() {
                 cfg.no_edge_metar_poll_secs = n;
@@ -234,8 +247,30 @@ impl Config {
                 cfg.no_edge_nowcast_staleness_kill_secs = n;
             }
         }
-=======
-        // --- Phase 3 NO-edge farmer caps ---
+        if let Ok(v) = std::env::var("NO_EDGE_FORECAST_POLL_SECS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_forecast_poll_secs = n;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_LOOKAHEAD_DAYS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_lookahead_days = n;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_SIGMA_SCALE") {
+            if let Ok(f) = v.parse() {
+                cfg.no_edge_sigma_scale = f;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_CITIES") {
+            cfg.no_edge_cities = v
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+        }
+
+        // --- Phase 3 NO-edge farmer (portfolio caps) ---
         if let Ok(v) = std::env::var("NO_EDGE_MAX_NOTIONAL_PER_MARKET_USDC") {
             if let Ok(f) = v.parse() {
                 cfg.no_edge_max_notional_per_market_usdc = f;
@@ -264,7 +299,6 @@ impl Config {
         if let Ok(v) = std::env::var("NO_EDGE_STATE_PATH") {
             cfg.no_edge_state_path = v;
         }
->>>>>>> 2d61d16 (feat(phase3,#8): portfolio facade + NoEdgeState)
 
         // Invariant: paper_mode forces simulation
         if cfg.paper_mode {

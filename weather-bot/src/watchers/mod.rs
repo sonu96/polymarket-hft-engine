@@ -5,6 +5,7 @@
 
 pub mod clob_book;
 pub mod clob_ws;
+pub mod forecast;
 pub mod mempool;
 pub mod metar;
 pub mod onchain;

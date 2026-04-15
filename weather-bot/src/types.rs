@@ -100,6 +100,50 @@ pub struct ClobMarketReady {
 pub type ClobReadySender = mpsc::UnboundedSender<ClobMarketReady>;
 pub type ClobReadyReceiver = mpsc::UnboundedReceiver<ClobMarketReady>;
 
+/// Which Open-Meteo model family supplied μ for a [`ForecastTick`].
+/// `Seamless` means we fell back to the source-agnostic default after the
+/// preferred model returned no value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum ForecastSource {
+    GfsHrrr,
+    EcmwfIfs025,
+    Seamless,
+}
+
+/// Where σ came from. Ensemble spread is the design default; the hard-coded
+/// table is the fallback after 3 consecutive ensemble failures or when the
+/// ensemble returns fewer than 3 members.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum SigmaSource {
+    EnsembleSpread,
+    HardcodedFallback,
+}
+
+/// Emitted on a 30-minute cadence by `watchers::forecast` for every seeded
+/// `(city, days_ahead)` pair. μ and σ are in the city's *native* unit
+/// (°F for the 10 US stations, °C for VILK) — callers know the unit from
+/// `climo::station_for_city(city).unit`.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct ForecastTick {
+    pub city: &'static str,
+    pub icao: &'static str,
+    pub date: chrono::NaiveDate,
+    pub days_ahead: i64,
+    pub mu: f64,
+    pub sigma: f64,
+    pub source_mu: ForecastSource,
+    pub source_sigma: SigmaSource,
+    pub fetched_at_ns: u128,
+}
+
+#[allow(dead_code)]
+pub type ForecastTickSender = mpsc::UnboundedSender<ForecastTick>;
+#[allow(dead_code)]
+pub type ForecastTickReceiver = mpsc::UnboundedReceiver<ForecastTick>;
+
 /// METAR nowcast observation for a single ICAO. Emitted every 5 minutes by
 /// `watchers/metar.rs`. Downstream (`edge_book.rs`) applies
 /// `σ_remaining = σ_full × √remaining_var_frac` and truncates the bucket
