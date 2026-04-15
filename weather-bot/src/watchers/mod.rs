@@ -3,6 +3,7 @@
 //! `tokio::select!` loop. No polling — if a watcher can't subscribe, it
 //! reconnects with backoff; it never falls back to a timer loop.
 
+pub mod clob_book;
 pub mod clob_ws;
 pub mod mempool;
 pub mod metar;

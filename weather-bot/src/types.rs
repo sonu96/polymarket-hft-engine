@@ -135,3 +135,42 @@ pub fn now_ns() -> u128 {
         .map(|d| d.as_nanos())
         .unwrap_or(0)
 }
+
+/// One snapshot of a CLOB book for a single token. Emitted by
+/// `watchers::clob_book` whenever Polymarket pushes a `book` snapshot or a
+/// `price_change` delta. Ladders are sorted: asks ascending by price, bids
+/// descending by price. `best_bid` and `best_ask` are the top of each ladder
+/// or `None` when that side is empty.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct BookUpdate {
+    pub token_id: U256,
+    pub best_bid: Option<f64>,
+    pub best_ask: Option<f64>,
+    /// (price, size) ascending by price.
+    pub asks_ladder: Vec<(f64, f64)>,
+    /// (price, size) descending by price.
+    pub bids_ladder: Vec<(f64, f64)>,
+    pub fetched_at_ns: u128,
+}
+
+#[allow(dead_code)]
+pub type BookUpdateSender = mpsc::UnboundedSender<BookUpdate>;
+#[allow(dead_code)]
+pub type BookUpdateReceiver = mpsc::UnboundedReceiver<BookUpdate>;
+
+/// Subscription command sent into `watchers::clob_book` from EdgeBook (or any
+/// upstream owner of the wanted-token set). The watcher is the single
+/// authoritative owner of the subscribed-token `HashSet`; this channel is the
+/// only way to mutate it.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub enum SubCmd {
+    Add(U256),
+    Remove(U256),
+}
+
+#[allow(dead_code)]
+pub type SubCmdSender = mpsc::UnboundedSender<SubCmd>;
+#[allow(dead_code)]
+pub type SubCmdReceiver = mpsc::UnboundedReceiver<SubCmd>;
