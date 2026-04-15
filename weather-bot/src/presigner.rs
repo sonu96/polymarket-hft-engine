@@ -23,16 +23,15 @@
 
 use crate::executor::Executor;
 use crate::types::{BucketInfo, WeatherEvent};
+use alloy_primitives::U256;
 use polymarket_client_sdk::clob::types::Side;
-use rust_decimal::prelude::FromPrimitive;
-use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct SignedOrder {
-    pub token_id: String,
+    pub token_id: U256,
     pub limit_price: f64,
     pub size_shares: f64,
     pub bucket_label: String,
@@ -91,9 +90,8 @@ impl Presigner {
             if price < self.template.min_dump_price {
                 continue;
             }
-            let token_id_dec = bucket.token_id_yes.to_string();
             let order = SignedOrder {
-                token_id: token_id_dec,
+                token_id: bucket.token_id_yes,
                 limit_price: price,
                 size_shares: shares_per_bucket,
                 bucket_label: bucket.bucket_label.clone(),
@@ -139,15 +137,12 @@ impl Presigner {
                 ok += 1;
                 continue;
             }
-            // Live path: build + sign + POST via the existing SDK path.
-            let _price_dec = Decimal::from_f64(o.limit_price);
-            let _size_dec = Decimal::from_f64(o.size_shares);
             match self
                 .executor
-                .submit_limit_order(&o.token_id, o.limit_price, o.size_shares, Side::Sell)
+                .post_limit_order(o.token_id, o.limit_price, o.size_shares, Side::Sell)
                 .await
             {
-                Ok(_) => ok += 1,
+                Ok(_order_id) => ok += 1,
                 Err(e) => tracing::warn!("[presigner] POST failed for {}: {}", o.token_id, e),
             }
         }

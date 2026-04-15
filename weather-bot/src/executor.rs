@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::state::BotState;
+use alloy_primitives::U256;
 use anyhow::{Context, Result};
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
@@ -9,6 +10,8 @@ use std::sync::Arc;
 use alloy_signer_local::LocalSigner;
 use alloy_signer::Signer;
 use k256::ecdsa::SigningKey;
+use polymarket_client_sdk::clob::types::request::OrdersRequest;
+use polymarket_client_sdk::clob::types::response::OpenOrderResponse;
 use polymarket_client_sdk::clob::types::Side;
 use polymarket_client_sdk::clob::Client as ClobClient;
 use polymarket_client_sdk::clob::Config as ClobConfig;
@@ -79,16 +82,18 @@ impl Executor {
         })
     }
 
-    /// Submit a signed limit order via the Polymarket Rust SDK. Reused by the
-    /// dump path to market-sell minted legs. Not on the hot path — call after
-    /// pre-signing if you need a one-off order.
-    pub async fn submit_limit_order(
+    /// Post a signed limit order and return the CLOB-assigned order ID.
+    ///
+    /// Used by both pipelines: Phase 2 mint-and-dump (fire-and-forget — discards
+    /// the returned id) and Phase 3 no-edge farmer (tracks the id in the quoter
+    /// state machine for later cancel/amend).
+    pub async fn post_limit_order(
         &self,
-        token_id: &str,
+        token_id: U256,
         price: f64,
         size: f64,
         side: Side,
-    ) -> Result<()> {
+    ) -> Result<String> {
         let client = self
             .clob_client
             .as_ref()
@@ -99,7 +104,7 @@ impl Executor {
         let size_dec = Decimal::from_f64(size).context("Invalid size")?;
 
         tracing::info!(
-            "[CLOB] {:?} order: {} @ ${} x {}",
+            "[CLOB] POST {:?} {} @ ${} x {}",
             side,
             token_id,
             price_dec,
@@ -126,8 +131,62 @@ impl Executor {
             .await
             .context("Failed to submit order")?;
 
-        tracing::info!("[CLOB] Order submitted: {:?}", response);
+        if !response.success {
+            anyhow::bail!(
+                "CLOB rejected order: {}",
+                response.error_msg.unwrap_or_else(|| "no error message".into())
+            );
+        }
+
+        tracing::info!(
+            "[CLOB] accepted id={} status={:?}",
+            response.order_id,
+            response.status
+        );
+        Ok(response.order_id)
+    }
+
+    /// Cancel a single resting order by its CLOB order ID. Used by the Phase 3
+    /// quoter when it needs to amend a resting quote or drop out on a
+    /// forecast-staleness kill-switch.
+    pub async fn cancel_order(&self, order_id: &str) -> Result<()> {
+        let client = self
+            .clob_client
+            .as_ref()
+            .context("CLOB client not initialized (simulation mode?)")?;
+        let response = client
+            .cancel_order(order_id)
+            .await
+            .context("Failed to cancel order")?;
+        tracing::info!("[CLOB] cancel {} → {:?}", order_id, response);
         Ok(())
+    }
+
+    /// List every open order owned by the authenticated funder. Paginated
+    /// via the SDK's `next_cursor`. Called at startup to reconcile resting
+    /// orders against the persisted `NoEdgeState` — adopt known ones, cancel
+    /// orphans — before the first new post of the session.
+    pub async fn list_open_orders(&self) -> Result<Vec<OpenOrderResponse>> {
+        let client = self
+            .clob_client
+            .as_ref()
+            .context("CLOB client not initialized (simulation mode?)")?;
+        let req = OrdersRequest::builder().build();
+        let mut collected: Vec<OpenOrderResponse> = Vec::new();
+        let mut cursor: Option<String> = None;
+        loop {
+            let page = client
+                .orders(&req, cursor.clone())
+                .await
+                .context("Failed to list open orders")?;
+            collected.extend(page.data);
+            if page.next_cursor.is_empty() || page.next_cursor == "LTE=" {
+                break;
+            }
+            cursor = Some(page.next_cursor);
+        }
+        tracing::info!("[CLOB] list_open_orders → {} orders", collected.len());
+        Ok(collected)
     }
 
     /// Stub for periodic position price refresh. Called by the status/alerts

@@ -23,7 +23,7 @@ anyhow = "1.0"
 
 # Polymarket official Rust SDK — handles EIP-712 signing, auth, order building.
 # The `clob` module is unconditionally exported; only `ws`/`gamma`/`data`/`tracing` are gated features.
-polymarket-client-sdk = { version = "0.3", features = ["ws", "gamma", "data", "tracing"] }
+polymarket-client-sdk = { version = "0.4.4", features = ["clob", "ws", "gamma", "data", "tracing"] }
 alloy-signer-local = "1.7"
 alloy-signer = "1.7"
 alloy-primitives = "1.3"
