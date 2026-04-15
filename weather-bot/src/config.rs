@@ -59,6 +59,17 @@ pub struct Config {
     pub paper_max_concurrent_events: usize,
     /// Where to append the structured CSV log.
     pub paper_log_path: String,
+
+    // -------- NO-edge farmer (Phase 3) --------
+    /// METAR poll cadence per seeded ICAO, in seconds. Default 300 (5 min).
+    /// At 5 min and 10 US stations that's 120 req/hr — under the 132 req/hr
+    /// AviationWeather budget called out in the design doc.
+    pub no_edge_metar_poll_secs: u64,
+    /// Per-ICAO METAR staleness threshold in seconds. After this much time
+    /// without a successful fetch for a given ICAO, the watcher emits a
+    /// "revert to forecast-only σ" tick (`remaining_var_frac = 1.0`) for
+    /// that station and keeps trying. Default 900 (15 min = 3 missed cycles).
+    pub no_edge_nowcast_staleness_kill_secs: u64,
 }
 
 impl Default for Config {
@@ -91,6 +102,9 @@ impl Default for Config {
             paper_starting_bankroll: 1000.0,
             paper_max_concurrent_events: 8,
             paper_log_path: "paper_run.log".to_string(),
+
+            no_edge_metar_poll_secs: 300,
+            no_edge_nowcast_staleness_kill_secs: 900,
         }
     }
 }
@@ -180,6 +194,17 @@ impl Config {
         }
         if let Ok(v) = std::env::var("PAPER_LOG_PATH") {
             cfg.paper_log_path = v;
+        }
+
+        if let Ok(v) = std::env::var("NO_EDGE_METAR_POLL_SECS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_metar_poll_secs = n;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_NOWCAST_STALENESS_KILL_SECS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_nowcast_staleness_kill_secs = n;
+            }
         }
 
         // Invariant: paper_mode forces simulation

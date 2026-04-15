@@ -100,6 +100,31 @@ pub struct ClobMarketReady {
 pub type ClobReadySender = mpsc::UnboundedSender<ClobMarketReady>;
 pub type ClobReadyReceiver = mpsc::UnboundedReceiver<ClobMarketReady>;
 
+/// METAR nowcast observation for a single ICAO. Emitted every 5 minutes by
+/// `watchers/metar.rs`. Downstream (`edge_book.rs`) applies
+/// `σ_remaining = σ_full × √remaining_var_frac` and truncates the bucket
+/// distribution below `observed_max` (a physical lower bound on final TMAX).
+#[derive(Debug, Clone)]
+pub struct NowcastTick {
+    pub icao: &'static str,
+    pub date: chrono::NaiveDate,
+    /// Max temperature observed so far for `date` in the station's native
+    /// unit (°F for US ICAOs, °C for VILK / Lucknow).
+    pub observed_max: f64,
+    /// 0..=23 station-local hour of the most recent observation. For the
+    /// staleness-revert tick this carries the most recent known hour, or
+    /// 0 if no observation has ever been recorded.
+    pub hour_local: u32,
+    /// Fraction of the day's TMAX variance still ahead. `1.0` means full
+    /// variance (early morning OR staleness-revert); `~0.05` means the
+    /// observed-so-far is essentially the final TMAX.
+    pub remaining_var_frac: f64,
+    pub fetched_at_ns: u128,
+}
+
+pub type NowcastTickSender = mpsc::UnboundedSender<NowcastTick>;
+pub type NowcastTickReceiver = mpsc::UnboundedReceiver<NowcastTick>;
+
 /// Tiny helper — grabs nanos-since-epoch for the `detected_at_ns` field.
 /// Inlined to keep the hot-path branchless.
 #[inline(always)]

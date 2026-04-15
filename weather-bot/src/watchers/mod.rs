@@ -5,4 +5,5 @@
 
 pub mod clob_ws;
 pub mod mempool;
+pub mod metar;
 pub mod onchain;
