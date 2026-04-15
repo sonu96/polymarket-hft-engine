@@ -1,4 +1,5 @@
 mod alerts;
+mod climo;
 mod config;
 mod ctf_math;
 mod executor;

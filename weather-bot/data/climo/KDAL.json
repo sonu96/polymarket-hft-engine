@@ -1,0 +1,3297 @@
+{
+  "station_icao": "KDAL",
+  "source": "ncei_normals_1991_2020",
+  "ghcn_id": "USW00013960",
+  "period": "1991-2020",
+  "notes": null,
+  "days": {
+    "01-01": {
+      "tmax_mean_f": 56.9,
+      "tmax_std_f": 11.4,
+      "n_years": 30
+    },
+    "01-02": {
+      "tmax_mean_f": 56.9,
+      "tmax_std_f": 11.5,
+      "n_years": 30
+    },
+    "01-03": {
+      "tmax_mean_f": 56.8,
+      "tmax_std_f": 11.5,
+      "n_years": 30
+    },
+    "01-04": {
+      "tmax_mean_f": 56.8,
+      "tmax_std_f": 11.5,
+      "n_years": 30
+    },
+    "01-05": {
+      "tmax_mean_f": 56.8,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-06": {
+      "tmax_mean_f": 56.8,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-07": {
+      "tmax_mean_f": 56.9,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-08": {
+      "tmax_mean_f": 56.9,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-09": {
+      "tmax_mean_f": 56.9,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-10": {
+      "tmax_mean_f": 57.0,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-11": {
+      "tmax_mean_f": 57.1,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-12": {
+      "tmax_mean_f": 57.1,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-13": {
+      "tmax_mean_f": 57.2,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-14": {
+      "tmax_mean_f": 57.3,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-15": {
+      "tmax_mean_f": 57.4,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-16": {
+      "tmax_mean_f": 57.5,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-17": {
+      "tmax_mean_f": 57.6,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-18": {
+      "tmax_mean_f": 57.7,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-19": {
+      "tmax_mean_f": 57.8,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-20": {
+      "tmax_mean_f": 57.9,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-21": {
+      "tmax_mean_f": 58.0,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-22": {
+      "tmax_mean_f": 58.1,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-23": {
+      "tmax_mean_f": 58.3,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-24": {
+      "tmax_mean_f": 58.4,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "01-25": {
+      "tmax_mean_f": 58.5,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "01-26": {
+      "tmax_mean_f": 58.7,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "01-27": {
+      "tmax_mean_f": 58.8,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "01-28": {
+      "tmax_mean_f": 59.0,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "01-29": {
+      "tmax_mean_f": 59.1,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "01-30": {
+      "tmax_mean_f": 59.2,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "01-31": {
+      "tmax_mean_f": 59.4,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-01": {
+      "tmax_mean_f": 59.5,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-02": {
+      "tmax_mean_f": 59.7,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-03": {
+      "tmax_mean_f": 59.9,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-04": {
+      "tmax_mean_f": 60.0,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-05": {
+      "tmax_mean_f": 60.2,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-06": {
+      "tmax_mean_f": 60.3,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-07": {
+      "tmax_mean_f": 60.5,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-08": {
+      "tmax_mean_f": 60.7,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-09": {
+      "tmax_mean_f": 60.8,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-10": {
+      "tmax_mean_f": 61.0,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-11": {
+      "tmax_mean_f": 61.2,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-12": {
+      "tmax_mean_f": 61.4,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-13": {
+      "tmax_mean_f": 61.6,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-14": {
+      "tmax_mean_f": 61.7,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-15": {
+      "tmax_mean_f": 61.9,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-16": {
+      "tmax_mean_f": 62.1,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-17": {
+      "tmax_mean_f": 62.3,
+      "tmax_std_f": 11.8,
+      "n_years": 30
+    },
+    "02-18": {
+      "tmax_mean_f": 62.6,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-19": {
+      "tmax_mean_f": 62.8,
+      "tmax_std_f": 11.7,
+      "n_years": 30
+    },
+    "02-20": {
+      "tmax_mean_f": 63.0,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "02-21": {
+      "tmax_mean_f": 63.2,
+      "tmax_std_f": 11.6,
+      "n_years": 30
+    },
+    "02-22": {
+      "tmax_mean_f": 63.5,
+      "tmax_std_f": 11.5,
+      "n_years": 30
+    },
+    "02-23": {
+      "tmax_mean_f": 63.7,
+      "tmax_std_f": 11.5,
+      "n_years": 30
+    },
+    "02-24": {
+      "tmax_mean_f": 64.0,
+      "tmax_std_f": 11.4,
+      "n_years": 30
+    },
+    "02-25": {
+      "tmax_mean_f": 64.2,
+      "tmax_std_f": 11.4,
+      "n_years": 30
+    },
+    "02-26": {
+      "tmax_mean_f": 64.5,
+      "tmax_std_f": 11.3,
+      "n_years": 30
+    },
+    "02-27": {
+      "tmax_mean_f": 64.7,
+      "tmax_std_f": 11.2,
+      "n_years": 30
+    },
+    "02-28": {
+      "tmax_mean_f": 65.0,
+      "tmax_std_f": 11.2,
+      "n_years": 30
+    },
+    "03-01": {
+      "tmax_mean_f": 65.3,
+      "tmax_std_f": 11.1,
+      "n_years": 30
+    },
+    "03-02": {
+      "tmax_mean_f": 65.6,
+      "tmax_std_f": 11.1,
+      "n_years": 30
+    },
+    "03-03": {
+      "tmax_mean_f": 65.9,
+      "tmax_std_f": 11.0,
+      "n_years": 30
+    },
+    "03-04": {
+      "tmax_mean_f": 66.2,
+      "tmax_std_f": 10.9,
+      "n_years": 30
+    },
+    "03-05": {
+      "tmax_mean_f": 66.5,
+      "tmax_std_f": 10.9,
+      "n_years": 30
+    },
+    "03-06": {
+      "tmax_mean_f": 66.8,
+      "tmax_std_f": 10.8,
+      "n_years": 30
+    },
+    "03-07": {
+      "tmax_mean_f": 67.1,
+      "tmax_std_f": 10.7,
+      "n_years": 30
+    },
+    "03-08": {
+      "tmax_mean_f": 67.4,
+      "tmax_std_f": 10.7,
+      "n_years": 30
+    },
+    "03-09": {
+      "tmax_mean_f": 67.7,
+      "tmax_std_f": 10.6,
+      "n_years": 30
+    },
+    "03-10": {
+      "tmax_mean_f": 68.0,
+      "tmax_std_f": 10.5,
+      "n_years": 30
+    },
+    "03-11": {
+      "tmax_mean_f": 68.3,
+      "tmax_std_f": 10.4,
+      "n_years": 30
+    },
+    "03-12": {
+      "tmax_mean_f": 68.7,
+      "tmax_std_f": 10.3,
+      "n_years": 30
+    },
+    "03-13": {
+      "tmax_mean_f": 69.0,
+      "tmax_std_f": 10.2,
+      "n_years": 30
+    },
+    "03-14": {
+      "tmax_mean_f": 69.3,
+      "tmax_std_f": 10.1,
+      "n_years": 30
+    },
+    "03-15": {
+      "tmax_mean_f": 69.6,
+      "tmax_std_f": 10.0,
+      "n_years": 30
+    },
+    "03-16": {
+      "tmax_mean_f": 70.0,
+      "tmax_std_f": 9.9,
+      "n_years": 30
+    },
+    "03-17": {
+      "tmax_mean_f": 70.3,
+      "tmax_std_f": 9.8,
+      "n_years": 30
+    },
+    "03-18": {
+      "tmax_mean_f": 70.6,
+      "tmax_std_f": 9.8,
+      "n_years": 30
+    },
+    "03-19": {
+      "tmax_mean_f": 70.9,
+      "tmax_std_f": 9.7,
+      "n_years": 30
+    },
+    "03-20": {
+      "tmax_mean_f": 71.2,
+      "tmax_std_f": 9.6,
+      "n_years": 30
+    },
+    "03-21": {
+      "tmax_mean_f": 71.5,
+      "tmax_std_f": 9.5,
+      "n_years": 30
+    },
+    "03-22": {
+      "tmax_mean_f": 71.8,
+      "tmax_std_f": 9.4,
+      "n_years": 30
+    },
+    "03-23": {
+      "tmax_mean_f": 72.1,
+      "tmax_std_f": 9.3,
+      "n_years": 30
+    },
+    "03-24": {
+      "tmax_mean_f": 72.4,
+      "tmax_std_f": 9.3,
+      "n_years": 30
+    },
+    "03-25": {
+      "tmax_mean_f": 72.7,
+      "tmax_std_f": 9.2,
+      "n_years": 30
+    },
+    "03-26": {
+      "tmax_mean_f": 73.0,
+      "tmax_std_f": 9.1,
+      "n_years": 30
+    },
+    "03-27": {
+      "tmax_mean_f": 73.3,
+      "tmax_std_f": 9.1,
+      "n_years": 30
+    },
+    "03-28": {
+      "tmax_mean_f": 73.5,
+      "tmax_std_f": 9.0,
+      "n_years": 30
+    },
+    "03-29": {
+      "tmax_mean_f": 73.8,
+      "tmax_std_f": 9.0,
+      "n_years": 30
+    },
+    "03-30": {
+      "tmax_mean_f": 74.1,
+      "tmax_std_f": 8.9,
+      "n_years": 30
+    },
+    "03-31": {
+      "tmax_mean_f": 74.3,
+      "tmax_std_f": 8.8,
+      "n_years": 30
+    },
+    "04-01": {
+      "tmax_mean_f": 74.6,
+      "tmax_std_f": 8.8,
+      "n_years": 30
+    },
+    "04-02": {
+      "tmax_mean_f": 74.8,
+      "tmax_std_f": 8.7,
+      "n_years": 30
+    },
+    "04-03": {
+      "tmax_mean_f": 75.0,
+      "tmax_std_f": 8.6,
+      "n_years": 30
+    },
+    "04-04": {
+      "tmax_mean_f": 75.2,
+      "tmax_std_f": 8.5,
+      "n_years": 30
+    },
+    "04-05": {
+      "tmax_mean_f": 75.4,
+      "tmax_std_f": 8.5,
+      "n_years": 30
+    },
+    "04-06": {
+      "tmax_mean_f": 75.7,
+      "tmax_std_f": 8.4,
+      "n_years": 30
+    },
+    "04-07": {
+      "tmax_mean_f": 75.9,
+      "tmax_std_f": 8.3,
+      "n_years": 30
+    },
+    "04-08": {
+      "tmax_mean_f": 76.1,
+      "tmax_std_f": 8.2,
+      "n_years": 30
+    },
+    "04-09": {
+      "tmax_mean_f": 76.2,
+      "tmax_std_f": 8.2,
+      "n_years": 30
+    },
+    "04-10": {
+      "tmax_mean_f": 76.4,
+      "tmax_std_f": 8.1,
+      "n_years": 30
+    },
+    "04-11": {
+      "tmax_mean_f": 76.6,
+      "tmax_std_f": 8.0,
+      "n_years": 30
+    },
+    "04-12": {
+      "tmax_mean_f": 76.8,
+      "tmax_std_f": 7.9,
+      "n_years": 30
+    },
+    "04-13": {
+      "tmax_mean_f": 77.0,
+      "tmax_std_f": 7.9,
+      "n_years": 30
+    },
+    "04-14": {
+      "tmax_mean_f": 77.1,
+      "tmax_std_f": 7.8,
+      "n_years": 30
+    },
+    "04-15": {
+      "tmax_mean_f": 77.3,
+      "tmax_std_f": 7.7,
+      "n_years": 30
+    },
+    "04-16": {
+      "tmax_mean_f": 77.5,
+      "tmax_std_f": 7.7,
+      "n_years": 30
+    },
+    "04-17": {
+      "tmax_mean_f": 77.7,
+      "tmax_std_f": 7.6,
+      "n_years": 30
+    },
+    "04-18": {
+      "tmax_mean_f": 77.8,
+      "tmax_std_f": 7.5,
+      "n_years": 30
+    },
+    "04-19": {
+      "tmax_mean_f": 78.0,
+      "tmax_std_f": 7.5,
+      "n_years": 30
+    },
+    "04-20": {
+      "tmax_mean_f": 78.2,
+      "tmax_std_f": 7.4,
+      "n_years": 30
+    },
+    "04-21": {
+      "tmax_mean_f": 78.4,
+      "tmax_std_f": 7.3,
+      "n_years": 30
+    },
+    "04-22": {
+      "tmax_mean_f": 78.6,
+      "tmax_std_f": 7.3,
+      "n_years": 30
+    },
+    "04-23": {
+      "tmax_mean_f": 78.8,
+      "tmax_std_f": 7.2,
+      "n_years": 30
+    },
+    "04-24": {
+      "tmax_mean_f": 78.9,
+      "tmax_std_f": 7.1,
+      "n_years": 30
+    },
+    "04-25": {
+      "tmax_mean_f": 79.1,
+      "tmax_std_f": 7.1,
+      "n_years": 30
+    },
+    "04-26": {
+      "tmax_mean_f": 79.3,
+      "tmax_std_f": 7.0,
+      "n_years": 30
+    },
+    "04-27": {
+      "tmax_mean_f": 79.6,
+      "tmax_std_f": 6.9,
+      "n_years": 30
+    },
+    "04-28": {
+      "tmax_mean_f": 79.8,
+      "tmax_std_f": 6.9,
+      "n_years": 30
+    },
+    "04-29": {
+      "tmax_mean_f": 80.0,
+      "tmax_std_f": 6.8,
+      "n_years": 30
+    },
+    "04-30": {
+      "tmax_mean_f": 80.2,
+      "tmax_std_f": 6.8,
+      "n_years": 30
+    },
+    "05-01": {
+      "tmax_mean_f": 80.5,
+      "tmax_std_f": 6.8,
+      "n_years": 30
+    },
+    "05-02": {
+      "tmax_mean_f": 80.7,
+      "tmax_std_f": 6.7,
+      "n_years": 30
+    },
+    "05-03": {
+      "tmax_mean_f": 81.0,
+      "tmax_std_f": 6.7,
+      "n_years": 30
+    },
+    "05-04": {
+      "tmax_mean_f": 81.2,
+      "tmax_std_f": 6.7,
+      "n_years": 30
+    },
+    "05-05": {
+      "tmax_mean_f": 81.5,
+      "tmax_std_f": 6.6,
+      "n_years": 30
+    },
+    "05-06": {
+      "tmax_mean_f": 81.8,
+      "tmax_std_f": 6.6,
+      "n_years": 30
+    },
+    "05-07": {
+      "tmax_mean_f": 82.0,
+      "tmax_std_f": 6.6,
+      "n_years": 30
+    },
+    "05-08": {
+      "tmax_mean_f": 82.3,
+      "tmax_std_f": 6.6,
+      "n_years": 30
+    },
+    "05-09": {
+      "tmax_mean_f": 82.6,
+      "tmax_std_f": 6.5,
+      "n_years": 30
+    },
+    "05-10": {
+      "tmax_mean_f": 82.9,
+      "tmax_std_f": 6.5,
+      "n_years": 30
+    },
+    "05-11": {
+      "tmax_mean_f": 83.2,
+      "tmax_std_f": 6.5,
+      "n_years": 30
+    },
+    "05-12": {
+      "tmax_mean_f": 83.5,
+      "tmax_std_f": 6.5,
+      "n_years": 30
+    },
+    "05-13": {
+      "tmax_mean_f": 83.9,
+      "tmax_std_f": 6.4,
+      "n_years": 30
+    },
+    "05-14": {
+      "tmax_mean_f": 84.2,
+      "tmax_std_f": 6.4,
+      "n_years": 30
+    },
+    "05-15": {
+      "tmax_mean_f": 84.5,
+      "tmax_std_f": 6.4,
+      "n_years": 30
+    },
+    "05-16": {
+      "tmax_mean_f": 84.8,
+      "tmax_std_f": 6.3,
+      "n_years": 30
+    },
+    "05-17": {
+      "tmax_mean_f": 85.2,
+      "tmax_std_f": 6.3,
+      "n_years": 30
+    },
+    "05-18": {
+      "tmax_mean_f": 85.5,
+      "tmax_std_f": 6.3,
+      "n_years": 30
+    },
+    "05-19": {
+      "tmax_mean_f": 85.8,
+      "tmax_std_f": 6.2,
+      "n_years": 30
+    },
+    "05-20": {
+      "tmax_mean_f": 86.1,
+      "tmax_std_f": 6.2,
+      "n_years": 30
+    },
+    "05-21": {
+      "tmax_mean_f": 86.5,
+      "tmax_std_f": 6.1,
+      "n_years": 30
+    },
+    "05-22": {
+      "tmax_mean_f": 86.8,
+      "tmax_std_f": 6.1,
+      "n_years": 30
+    },
+    "05-23": {
+      "tmax_mean_f": 87.1,
+      "tmax_std_f": 6.1,
+      "n_years": 30
+    },
+    "05-24": {
+      "tmax_mean_f": 87.4,
+      "tmax_std_f": 6.0,
+      "n_years": 30
+    },
+    "05-25": {
+      "tmax_mean_f": 87.8,
+      "tmax_std_f": 6.0,
+      "n_years": 30
+    },
+    "05-26": {
+      "tmax_mean_f": 88.1,
+      "tmax_std_f": 5.9,
+      "n_years": 30
+    },
+    "05-27": {
+      "tmax_mean_f": 88.4,
+      "tmax_std_f": 5.9,
+      "n_years": 30
+    },
+    "05-28": {
+      "tmax_mean_f": 88.7,
+      "tmax_std_f": 5.8,
+      "n_years": 30
+    },
+    "05-29": {
+      "tmax_mean_f": 89.0,
+      "tmax_std_f": 5.8,
+      "n_years": 30
+    },
+    "05-30": {
+      "tmax_mean_f": 89.3,
+      "tmax_std_f": 5.7,
+      "n_years": 30
+    },
+    "05-31": {
+      "tmax_mean_f": 89.6,
+      "tmax_std_f": 5.7,
+      "n_years": 30
+    },
+    "06-01": {
+      "tmax_mean_f": 89.8,
+      "tmax_std_f": 5.6,
+      "n_years": 30
+    },
+    "06-02": {
+      "tmax_mean_f": 90.1,
+      "tmax_std_f": 5.6,
+      "n_years": 30
+    },
+    "06-03": {
+      "tmax_mean_f": 90.4,
+      "tmax_std_f": 5.5,
+      "n_years": 30
+    },
+    "06-04": {
+      "tmax_mean_f": 90.6,
+      "tmax_std_f": 5.4,
+      "n_years": 30
+    },
+    "06-05": {
+      "tmax_mean_f": 90.8,
+      "tmax_std_f": 5.4,
+      "n_years": 30
+    },
+    "06-06": {
+      "tmax_mean_f": 91.1,
+      "tmax_std_f": 5.3,
+      "n_years": 30
+    },
+    "06-07": {
+      "tmax_mean_f": 91.3,
+      "tmax_std_f": 5.3,
+      "n_years": 30
+    },
+    "06-08": {
+      "tmax_mean_f": 91.5,
+      "tmax_std_f": 5.2,
+      "n_years": 30
+    },
+    "06-09": {
+      "tmax_mean_f": 91.7,
+      "tmax_std_f": 5.2,
+      "n_years": 30
+    },
+    "06-10": {
+      "tmax_mean_f": 91.9,
+      "tmax_std_f": 5.1,
+      "n_years": 30
+    },
+    "06-11": {
+      "tmax_mean_f": 92.1,
+      "tmax_std_f": 5.1,
+      "n_years": 30
+    },
+    "06-12": {
+      "tmax_mean_f": 92.3,
+      "tmax_std_f": 5.0,
+      "n_years": 30
+    },
+    "06-13": {
+      "tmax_mean_f": 92.5,
+      "tmax_std_f": 5.0,
+      "n_years": 30
+    },
+    "06-14": {
+      "tmax_mean_f": 92.7,
+      "tmax_std_f": 5.0,
+      "n_years": 30
+    },
+    "06-15": {
+      "tmax_mean_f": 92.8,
+      "tmax_std_f": 4.9,
+      "n_years": 30
+    },
+    "06-16": {
+      "tmax_mean_f": 93.0,
+      "tmax_std_f": 4.9,
+      "n_years": 30
+    },
+    "06-17": {
+      "tmax_mean_f": 93.1,
+      "tmax_std_f": 4.9,
+      "n_years": 30
+    },
+    "06-18": {
+      "tmax_mean_f": 93.3,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "06-19": {
+      "tmax_mean_f": 93.4,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "06-20": {
+      "tmax_mean_f": 93.6,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "06-21": {
+      "tmax_mean_f": 93.7,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "06-22": {
+      "tmax_mean_f": 93.8,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-23": {
+      "tmax_mean_f": 94.0,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-24": {
+      "tmax_mean_f": 94.1,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-25": {
+      "tmax_mean_f": 94.2,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-26": {
+      "tmax_mean_f": 94.4,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-27": {
+      "tmax_mean_f": 94.5,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-28": {
+      "tmax_mean_f": 94.6,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-29": {
+      "tmax_mean_f": 94.7,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "06-30": {
+      "tmax_mean_f": 94.9,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-01": {
+      "tmax_mean_f": 95.0,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-02": {
+      "tmax_mean_f": 95.1,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-03": {
+      "tmax_mean_f": 95.2,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-04": {
+      "tmax_mean_f": 95.4,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-05": {
+      "tmax_mean_f": 95.5,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-06": {
+      "tmax_mean_f": 95.6,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-07": {
+      "tmax_mean_f": 95.8,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-08": {
+      "tmax_mean_f": 95.9,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-09": {
+      "tmax_mean_f": 96.0,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-10": {
+      "tmax_mean_f": 96.2,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-11": {
+      "tmax_mean_f": 96.3,
+      "tmax_std_f": 4.7,
+      "n_years": 30
+    },
+    "07-12": {
+      "tmax_mean_f": 96.5,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "07-13": {
+      "tmax_mean_f": 96.6,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "07-14": {
+      "tmax_mean_f": 96.7,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "07-15": {
+      "tmax_mean_f": 96.9,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "07-16": {
+      "tmax_mean_f": 97.0,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "07-17": {
+      "tmax_mean_f": 97.1,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "07-18": {
+      "tmax_mean_f": 97.3,
+      "tmax_std_f": 4.8,
+      "n_years": 30
+    },
+    "07-19": {
+      "tmax_mean_f": 97.4,
+      "tmax_std_f": 4.9,
+      "n_years": 30
+    },
+    "07-20": {
+      "tmax_mean_f": 97.5,
+      "tmax_std_f": 4.9,
+      "n_years": 30
+    },
+    "07-21": {
+      "tmax_mean_f": 97.6,
+      "tmax_std_f": 4.9,
+      "n_years": 30
+    },
+    "07-22": {
+      "tmax_mean_f": 97.7,
+      "tmax_std_f": 4.9,
+      "n_years": 30
+    },
+    "07-23": {
+      "tmax_mean_f": 97.8,
+      "tmax_std_f": 5.0,
+      "n_years": 30
+    },
+    "07-24": {
+      "tmax_mean_f": 97.9,
+      "tmax_std_f": 5.0,
+      "n_years": 30
+    },
+    "07-25": {
+      "tmax_mean_f": 98.0,
+      "tmax_std_f": 5.0,
+      "n_years": 30
+    },
+    "07-26": {
+      "tmax_mean_f": 98.1,
+      "tmax_std_f": 5.1,
+      "n_years": 30
+    },
+    "07-27": {
+      "tmax_mean_f": 98.2,
+      "tmax_std_f": 5.1,
+      "n_years": 30
+    },
+    "07-28": {
+      "tmax_mean_f": 98.3,
+      "tmax_std_f": 5.1,
+      "n_years": 30
+    },
+    "07-29": {
+      "tmax_mean_f": 98.3,
+      "tmax_std_f": 5.2,
+      "n_years": 30
+    },
+    "07-30": {
+      "tmax_mean_f": 98.4,
+      "tmax_std_f": 5.2,
+      "n_years": 30
+    },
+    "07-31": {
+      "tmax_mean_f": 98.4,
+      "tmax_std_f": 5.3,
+      "n_years": 30
+    },
+    "08-01": {
+      "tmax_mean_f": 98.5,
+      "tmax_std_f": 5.3,
+      "n_years": 30
+    },
+    "08-02": {
+      "tmax_mean_f": 98.5,
+      "tmax_std_f": 5.4,
+      "n_years": 30
+    },
+    "08-03": {
+      "tmax_mean_f": 98.5,
+      "tmax_std_f": 5.4,
+      "n_years": 30
+    },
+    "08-04": {
+      "tmax_mean_f": 98.5,
+      "tmax_std_f": 5.4,
+      "n_years": 30
+    },
+    "08-05": {
+      "tmax_mean_f": 98.5,
+      "tmax_std_f": 5.5,
+      "n_years": 30
+    },
+    "08-06": {
+      "tmax_mean_f": 98.4,
+      "tmax_std_f": 5.5,
+      "n_years": 30
+    },
+    "08-07": {
+      "tmax_mean_f": 98.4,
+      "tmax_std_f": 5.5,
+      "n_years": 30
+    },
+    "08-08": {
+      "tmax_mean_f": 98.3,
+      "tmax_std_f": 5.6,
+      "n_years": 30
+    },
+    "08-09": {
+      "tmax_mean_f": 98.3,
+      "tmax_std_f": 5.6,
+      "n_years": 30
+    },
+    "08-10": {
+      "tmax_mean_f": 98.2,
+      "tmax_std_f": 5.6,
+      "n_years": 30
+    },
+    "08-11": {
+      "tmax_mean_f": 98.1,
+      "tmax_std_f": 5.6,
+      "n_years": 30
+    },
+    "08-12": {
+      "tmax_mean_f": 98.0,
+      "tmax_std_f": 5.7,
+      "n_years": 30
+    },
+    "08-13": {
+      "tmax_mean_f": 97.9,
+      "tmax_std_f": 5.7,
+      "n_years": 30
+    },
+    "08-14": {
+      "tmax_mean_f": 97.8,
+      "tmax_std_f": 5.8,
+      "n_years": 30
+    },
+    "08-15": {
+      "tmax_mean_f": 97.6,
+      "tmax_std_f": 5.8,
+      "n_years": 30
+    },
+    "08-16": {
+      "tmax_mean_f": 97.5,
+      "tmax_std_f": 5.8,
+      "n_years": 30
+    },
+    "08-17": {
+      "tmax_mean_f": 97.3,
+      "tmax_std_f": 5.8,
+      "n_years": 30
+    },
+    "08-18": {
+      "tmax_mean_f": 97.2,
+      "tmax_std_f": 5.9,
+      "n_years": 30
+    },
+    "08-19": {
+      "tmax_mean_f": 97.0,
+      "tmax_std_f": 5.9,
+      "n_years": 30
+    },
+    "08-20": {
+      "tmax_mean_f": 96.8,
+      "tmax_std_f": 5.9,
+      "n_years": 30
+    },
+    "08-21": {
+      "tmax_mean_f": 96.6,
+      "tmax_std_f": 6.0,
+      "n_years": 30
+    },
+    "08-22": {
+      "tmax_mean_f": 96.4,
+      "tmax_std_f": 6.0,
+      "n_years": 30
+    },
+    "08-23": {
+      "tmax_mean_f": 96.2,
+      "tmax_std_f": 6.0,
+      "n_years": 30
+    },
+    "08-24": {
+      "tmax_mean_f": 96.0,
+      "tmax_std_f": 6.1,
+      "n_years": 30
+    },
+    "08-25": {
+      "tmax_mean_f": 95.8,
+      "tmax_std_f": 6.1,
+      "n_years": 30
+    },
+    "08-26": {
+      "tmax_mean_f": 95.6,
+      "tmax_std_f": 6.1,
+      "n_years": 30
+    },
+    "08-27": {
+      "tmax_mean_f": 95.3,
+      "tmax_std_f": 6.1,
+      "n_years": 30
+    },
+    "08-28": {
+      "tmax_mean_f": 95.1,
+      "tmax_std_f": 6.2,
+      "n_years": 30
+    },
+    "08-29": {
+      "tmax_mean_f": 94.8,
+      "tmax_std_f": 6.2,
+      "n_years": 30
+    },
+    "08-30": {
+      "tmax_mean_f": 94.6,
+      "tmax_std_f": 6.2,
+      "n_years": 30
+    },
+    "08-31": {
+      "tmax_mean_f": 94.3,
+      "tmax_std_f": 6.2,
+      "n_years": 30
+    },
+    "09-01": {
+      "tmax_mean_f": 94.1,
+      "tmax_std_f": 6.2,
+      "n_years": 30
+    },
+    "09-02": {
+      "tmax_mean_f": 93.8,
+      "tmax_std_f": 6.3,
+      "n_years": 30
+    },
+    "09-03": {
+      "tmax_mean_f": 93.6,
+      "tmax_std_f": 6.3,
+      "n_years": 30
+    },
+    "09-04": {
+      "tmax_mean_f": 93.3,
+      "tmax_std_f": 6.3,
+      "n_years": 30
+    },
+    "09-05": {
+      "tmax_mean_f": 93.0,
+      "tmax_std_f": 6.4,
+      "n_years": 30
+    },
+    "09-06": {
+      "tmax_mean_f": 92.7,
+      "tmax_std_f": 6.4,
+      "n_years": 30
+    },
+    "09-07": {
+      "tmax_mean_f": 92.5,
+      "tmax_std_f": 6.5,
+      "n_years": 30
+    },
+    "09-08": {
+      "tmax_mean_f": 92.2,
+      "tmax_std_f": 6.5,
+      "n_years": 30
+    },
+    "09-09": {
+      "tmax_mean_f": 91.9,
+      "tmax_std_f": 6.6,
+      "n_years": 30
+    },
+    "09-10": {
+      "tmax_mean_f": 91.6,
+      "tmax_std_f": 6.6,
+      "n_years": 30
+    },
+    "09-11": {
+      "tmax_mean_f": 91.4,
+      "tmax_std_f": 6.6,
+      "n_years": 30
+    },
+    "09-12": {
+      "tmax_mean_f": 91.1,
+      "tmax_std_f": 6.7,
+      "n_years": 30
+    },
+    "09-13": {
+      "tmax_mean_f": 90.8,
+      "tmax_std_f": 6.7,
+      "n_years": 30
+    },
+    "09-14": {
+      "tmax_mean_f": 90.5,
+      "tmax_std_f": 6.7,
+      "n_years": 30
+    },
+    "09-15": {
+      "tmax_mean_f": 90.2,
+      "tmax_std_f": 6.8,
+      "n_years": 30
+    },
+    "09-16": {
+      "tmax_mean_f": 89.9,
+      "tmax_std_f": 6.8,
+      "n_years": 30
+    },
+    "09-17": {
+      "tmax_mean_f": 89.7,
+      "tmax_std_f": 6.9,
+      "n_years": 30
+    },
+    "09-18": {
+      "tmax_mean_f": 89.4,
+      "tmax_std_f": 6.9,
+      "n_years": 30
+    },
+    "09-19": {
+      "tmax_mean_f": 89.1,
+      "tmax_std_f": 6.9,
+      "n_years": 30
+    },
+    "09-20": {
+      "tmax_mean_f": 88.8,
+      "tmax_std_f": 7.0,
+      "n_years": 30
+    },
+    "09-21": {
+      "tmax_mean_f": 88.5,
+      "tmax_std_f": 7.0,
+      "n_years": 30
+    },
+    "09-22": {
+      "tmax_mean_f": 88.2,
+      "tmax_std_f": 7.1,
+      "n_years": 30
+    },
+    "09-23": {
+      "tmax_mean_f": 87.8,
+      "tmax_std_f": 7.1,
+      "n_years": 30
+    },
+    "09-24": {
+      "tmax_mean_f": 87.5,
+      "tmax_std_f": 7.1,
+      "n_years": 30
+    },
+    "09-25": {
+      "tmax_mean_f": 87.2,
+      "tmax_std_f": 7.2,
+      "n_years": 30
+    },
+    "09-26": {
+      "tmax_mean_f": 86.9,
+      "tmax_std_f": 7.3,
+      "n_years": 30
+    },
+    "09-27": {
+      "tmax_mean_f": 86.6,
+      "tmax_std_f": 7.3,
+      "n_years": 30
+    },
+    "09-28": {
+      "tmax_mean_f": 86.3,
+      "tmax_std_f": 7.4,
+      "n_years": 30
+    },
+    "09-29": {
+      "tmax_mean_f": 85.9,
+      "tmax_std_f": 7.5,
+      "n_years": 30
+    },
+    "09-30": {
+      "tmax_mean_f": 85.6,
+      "tmax_std_f": 7.5,
+      "n_years": 30
+    },
+    "10-01": {
+      "tmax_mean_f": 85.2,
+      "tmax_std_f": 7.6,
+      "n_years": 30
+    },
+    "10-02": {
+      "tmax_mean_f": 84.9,
+      "tmax_std_f": 7.6,
+      "n_years": 30
+    },
+    "10-03": {
+      "tmax_mean_f": 84.5,
+      "tmax_std_f": 7.6,
+      "n_years": 30
+    },
+    "10-04": {
+      "tmax_mean_f": 84.2,
+      "tmax_std_f": 7.7,
+      "n_years": 30
+    },
+    "10-05": {
+      "tmax_mean_f": 83.8,
+      "tmax_std_f": 7.7,
+      "n_years": 30
+    },
+    "10-06": {
+      "tmax_mean_f": 83.5,
+      "tmax_std_f": 7.8,
+      "n_years": 30
+    },
+    "10-07": {
+      "tmax_mean_f": 83.1,
+      "tmax_std_f": 7.8,
+      "n_years": 30
+    },
+    "10-08": {
+      "tmax_mean_f": 82.7,
+      "tmax_std_f": 7.9,
+      "n_years": 30
+    },
+    "10-09": {
+      "tmax_mean_f": 82.3,
+      "tmax_std_f": 7.9,
+      "n_years": 30
+    },
+    "10-10": {
+      "tmax_mean_f": 82.0,
+      "tmax_std_f": 8.0,
+      "n_years": 30
+    },
+    "10-11": {
+      "tmax_mean_f": 81.6,
+      "tmax_std_f": 8.0,
+      "n_years": 30
+    },
+    "10-12": {
+      "tmax_mean_f": 81.2,
+      "tmax_std_f": 8.1,
+      "n_years": 30
+    },
+    "10-13": {
+      "tmax_mean_f": 80.8,
+      "tmax_std_f": 8.2,
+      "n_years": 30
+    },
+    "10-14": {
+      "tmax_mean_f": 80.4,
+      "tmax_std_f": 8.3,
+      "n_years": 30
+    },
+    "10-15": {
+      "tmax_mean_f": 80.0,
+      "tmax_std_f": 8.4,
+      "n_years": 30
+    },
+    "10-16": {
+      "tmax_mean_f": 79.6,
+      "tmax_std_f": 8.5,
+      "n_years": 30
+    },
+    "10-17": {
+      "tmax_mean_f": 79.2,
+      "tmax_std_f": 8.5,
+      "n_years": 30
+    },
+    "10-18": {
+      "tmax_mean_f": 78.8,
+      "tmax_std_f": 8.6,
+      "n_years": 30
+    },
+    "10-19": {
+      "tmax_mean_f": 78.4,
+      "tmax_std_f": 8.7,
+      "n_years": 30
+    },
+    "10-20": {
+      "tmax_mean_f": 78.0,
+      "tmax_std_f": 8.8,
+      "n_years": 30
+    },
+    "10-21": {
+      "tmax_mean_f": 77.5,
+      "tmax_std_f": 8.9,
+      "n_years": 30
+    },
+    "10-22": {
+      "tmax_mean_f": 77.1,
+      "tmax_std_f": 8.9,
+      "n_years": 30
+    },
+    "10-23": {
+      "tmax_mean_f": 76.7,
+      "tmax_std_f": 9.0,
+      "n_years": 30
+    },
+    "10-24": {
+      "tmax_mean_f": 76.3,
+      "tmax_std_f": 9.1,
+      "n_years": 30
+    },
+    "10-25": {
+      "tmax_mean_f": 75.9,
+      "tmax_std_f": 9.2,
+      "n_years": 30
+    },
+    "10-26": {
+      "tmax_mean_f": 75.5,
+      "tmax_std_f": 9.3,
+      "n_years": 30
+    },
+    "10-27": {
+      "tmax_mean_f": 75.1,
+      "tmax_std_f": 9.3,
+      "n_years": 30
+    },
+    "10-28": {
+      "tmax_mean_f": 74.7,
+      "tmax_std_f": 9.4,
+      "n_years": 30
+    },
+    "10-29": {
+      "tmax_mean_f": 74.3,
+      "tmax_std_f": 9.4,
+      "n_years": 30
+    },
+    "10-30": {
+      "tmax_mean_f": 73.9,
+      "tmax_std_f": 9.5,
+      "n_years": 30
+    },
+    "10-31": {
+      "tmax_mean_f": 73.5,
+      "tmax_std_f": 9.5,
+      "n_years": 30
+    },
+    "11-01": {
+      "tmax_mean_f": 73.1,
+      "tmax_std_f": 9.6,
+      "n_years": 29
+    },
+    "11-02": {
+      "tmax_mean_f": 72.7,
+      "tmax_std_f": 9.6,
+      "n_years": 29
+    },
+    "11-03": {
+      "tmax_mean_f": 72.3,
+      "tmax_std_f": 9.7,
+      "n_years": 29
+    },
+    "11-04": {
+      "tmax_mean_f": 71.9,
+      "tmax_std_f": 9.7,
+      "n_years": 29
+    },
+    "11-05": {
+      "tmax_mean_f": 71.5,
+      "tmax_std_f": 9.8,
+      "n_years": 29
+    },
+    "11-06": {
+      "tmax_mean_f": 71.1,
+      "tmax_std_f": 9.8,
+      "n_years": 29
+    },
+    "11-07": {
+      "tmax_mean_f": 70.7,
+      "tmax_std_f": 9.8,
+      "n_years": 29
+    },
+    "11-08": {
+      "tmax_mean_f": 70.4,
+      "tmax_std_f": 9.8,
+      "n_years": 29
+    },
+    "11-09": {
+      "tmax_mean_f": 70.0,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-10": {
+      "tmax_mean_f": 69.6,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-11": {
+      "tmax_mean_f": 69.3,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-12": {
+      "tmax_mean_f": 68.9,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-13": {
+      "tmax_mean_f": 68.5,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-14": {
+      "tmax_mean_f": 68.2,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-15": {
+      "tmax_mean_f": 67.8,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-16": {
+      "tmax_mean_f": 67.5,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-17": {
+      "tmax_mean_f": 67.2,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-18": {
+      "tmax_mean_f": 66.8,
+      "tmax_std_f": 9.9,
+      "n_years": 29
+    },
+    "11-19": {
+      "tmax_mean_f": 66.5,
+      "tmax_std_f": 10.0,
+      "n_years": 29
+    },
+    "11-20": {
+      "tmax_mean_f": 66.1,
+      "tmax_std_f": 10.0,
+      "n_years": 29
+    },
+    "11-21": {
+      "tmax_mean_f": 65.8,
+      "tmax_std_f": 10.0,
+      "n_years": 29
+    },
+    "11-22": {
+      "tmax_mean_f": 65.5,
+      "tmax_std_f": 10.0,
+      "n_years": 29
+    },
+    "11-23": {
+      "tmax_mean_f": 65.2,
+      "tmax_std_f": 10.0,
+      "n_years": 29
+    },
+    "11-24": {
+      "tmax_mean_f": 64.8,
+      "tmax_std_f": 10.1,
+      "n_years": 29
+    },
+    "11-25": {
+      "tmax_mean_f": 64.5,
+      "tmax_std_f": 10.1,
+      "n_years": 29
+    },
+    "11-26": {
+      "tmax_mean_f": 64.2,
+      "tmax_std_f": 10.1,
+      "n_years": 29
+    },
+    "11-27": {
+      "tmax_mean_f": 63.9,
+      "tmax_std_f": 10.1,
+      "n_years": 29
+    },
+    "11-28": {
+      "tmax_mean_f": 63.6,
+      "tmax_std_f": 10.2,
+      "n_years": 29
+    },
+    "11-29": {
+      "tmax_mean_f": 63.3,
+      "tmax_std_f": 10.2,
+      "n_years": 29
+    },
+    "11-30": {
+      "tmax_mean_f": 63.0,
+      "tmax_std_f": 10.2,
+      "n_years": 29
+    },
+    "12-01": {
+      "tmax_mean_f": 62.7,
+      "tmax_std_f": 10.3,
+      "n_years": 30
+    },
+    "12-02": {
+      "tmax_mean_f": 62.4,
+      "tmax_std_f": 10.3,
+      "n_years": 30
+    },
+    "12-03": {
+      "tmax_mean_f": 62.1,
+      "tmax_std_f": 10.3,
+      "n_years": 30
+    },
+    "12-04": {
+      "tmax_mean_f": 61.8,
+      "tmax_std_f": 10.4,
+      "n_years": 30
+    },
+    "12-05": {
+      "tmax_mean_f": 61.5,
+      "tmax_std_f": 10.4,
+      "n_years": 30
+    },
+    "12-06": {
+      "tmax_mean_f": 61.3,
+      "tmax_std_f": 10.4,
+      "n_years": 30
+    },
+    "12-07": {
+      "tmax_mean_f": 61.0,
+      "tmax_std_f": 10.4,
+      "n_years": 30
+    },
+    "12-08": {
+      "tmax_mean_f": 60.7,
+      "tmax_std_f": 10.5,
+      "n_years": 30
+    },
+    "12-09": {
+      "tmax_mean_f": 60.5,
+      "tmax_std_f": 10.5,
+      "n_years": 30
+    },
+    "12-10": {
+      "tmax_mean_f": 60.2,
+      "tmax_std_f": 10.5,
+      "n_years": 30
+    },
+    "12-11": {
+      "tmax_mean_f": 60.0,
+      "tmax_std_f": 10.6,
+      "n_years": 30
+    },
+    "12-12": {
+      "tmax_mean_f": 59.7,
+      "tmax_std_f": 10.6,
+      "n_years": 30
+    },
+    "12-13": {
+      "tmax_mean_f": 59.5,
+      "tmax_std_f": 10.7,
+      "n_years": 30
+    },
+    "12-14": {
+      "tmax_mean_f": 59.3,
+      "tmax_std_f": 10.7,
+      "n_years": 30
+    },
+    "12-15": {
+      "tmax_mean_f": 59.1,
+      "tmax_std_f": 10.8,
+      "n_years": 30
+    },
+    "12-16": {
+      "tmax_mean_f": 58.9,
+      "tmax_std_f": 10.8,
+      "n_years": 30
+    },
+    "12-17": {
+      "tmax_mean_f": 58.7,
+      "tmax_std_f": 10.8,
+      "n_years": 30
+    },
+    "12-18": {
+      "tmax_mean_f": 58.5,
+      "tmax_std_f": 10.9,
+      "n_years": 30
+    },
+    "12-19": {
+      "tmax_mean_f": 58.3,
+      "tmax_std_f": 10.9,
+      "n_years": 30
+    },
+    "12-20": {
+      "tmax_mean_f": 58.1,
+      "tmax_std_f": 10.9,
+      "n_years": 30
+    },
+    "12-21": {
+      "tmax_mean_f": 58.0,
+      "tmax_std_f": 11.0,
+      "n_years": 30
+    },
+    "12-22": {
+      "tmax_mean_f": 57.8,
+      "tmax_std_f": 11.0,
+      "n_years": 30
+    },
+    "12-23": {
+      "tmax_mean_f": 57.7,
+      "tmax_std_f": 11.1,
+      "n_years": 30
+    },
+    "12-24": {
+      "tmax_mean_f": 57.5,
+      "tmax_std_f": 11.1,
+      "n_years": 30
+    },
+    "12-25": {
+      "tmax_mean_f": 57.4,
+      "tmax_std_f": 11.1,
+      "n_years": 30
+    },
+    "12-26": {
+      "tmax_mean_f": 57.3,
+      "tmax_std_f": 11.2,
+      "n_years": 30
+    },
+    "12-27": {
+      "tmax_mean_f": 57.2,
+      "tmax_std_f": 11.2,
+      "n_years": 30
+    },
+    "12-28": {
+      "tmax_mean_f": 57.1,
+      "tmax_std_f": 11.3,
+      "n_years": 30
+    },
+    "12-29": {
+      "tmax_mean_f": 57.0,
+      "tmax_std_f": 11.3,
+      "n_years": 30
+    },
+    "12-30": {
+      "tmax_mean_f": 57.0,
+      "tmax_std_f": 11.4,
+      "n_years": 30
+    },
+    "12-31": {
+      "tmax_mean_f": 56.9,
+      "tmax_std_f": 11.4,
+      "n_years": 30
+    }
+  },
+  "station": "KDAL",
+  "normals": {
+    "01-01": [
+      56.9,
+      11.4
+    ],
+    "01-02": [
+      56.9,
+      11.5
+    ],
+    "01-03": [
+      56.8,
+      11.5
+    ],
+    "01-04": [
+      56.8,
+      11.5
+    ],
+    "01-05": [
+      56.8,
+      11.6
+    ],
+    "01-06": [
+      56.8,
+      11.6
+    ],
+    "01-07": [
+      56.9,
+      11.6
+    ],
+    "01-08": [
+      56.9,
+      11.6
+    ],
+    "01-09": [
+      56.9,
+      11.6
+    ],
+    "01-10": [
+      57.0,
+      11.6
+    ],
+    "01-11": [
+      57.1,
+      11.6
+    ],
+    "01-12": [
+      57.1,
+      11.6
+    ],
+    "01-13": [
+      57.2,
+      11.6
+    ],
+    "01-14": [
+      57.3,
+      11.6
+    ],
+    "01-15": [
+      57.4,
+      11.6
+    ],
+    "01-16": [
+      57.5,
+      11.6
+    ],
+    "01-17": [
+      57.6,
+      11.6
+    ],
+    "01-18": [
+      57.7,
+      11.6
+    ],
+    "01-19": [
+      57.8,
+      11.6
+    ],
+    "01-20": [
+      57.9,
+      11.6
+    ],
+    "01-21": [
+      58.0,
+      11.6
+    ],
+    "01-22": [
+      58.1,
+      11.6
+    ],
+    "01-23": [
+      58.3,
+      11.6
+    ],
+    "01-24": [
+      58.4,
+      11.6
+    ],
+    "01-25": [
+      58.5,
+      11.7
+    ],
+    "01-26": [
+      58.7,
+      11.7
+    ],
+    "01-27": [
+      58.8,
+      11.7
+    ],
+    "01-28": [
+      59.0,
+      11.7
+    ],
+    "01-29": [
+      59.1,
+      11.7
+    ],
+    "01-30": [
+      59.2,
+      11.7
+    ],
+    "01-31": [
+      59.4,
+      11.7
+    ],
+    "02-01": [
+      59.5,
+      11.7
+    ],
+    "02-02": [
+      59.7,
+      11.7
+    ],
+    "02-03": [
+      59.9,
+      11.7
+    ],
+    "02-04": [
+      60.0,
+      11.7
+    ],
+    "02-05": [
+      60.2,
+      11.7
+    ],
+    "02-06": [
+      60.3,
+      11.7
+    ],
+    "02-07": [
+      60.5,
+      11.8
+    ],
+    "02-08": [
+      60.7,
+      11.8
+    ],
+    "02-09": [
+      60.8,
+      11.8
+    ],
+    "02-10": [
+      61.0,
+      11.8
+    ],
+    "02-11": [
+      61.2,
+      11.8
+    ],
+    "02-12": [
+      61.4,
+      11.8
+    ],
+    "02-13": [
+      61.6,
+      11.8
+    ],
+    "02-14": [
+      61.7,
+      11.8
+    ],
+    "02-15": [
+      61.9,
+      11.8
+    ],
+    "02-16": [
+      62.1,
+      11.8
+    ],
+    "02-17": [
+      62.3,
+      11.8
+    ],
+    "02-18": [
+      62.6,
+      11.7
+    ],
+    "02-19": [
+      62.8,
+      11.7
+    ],
+    "02-20": [
+      63.0,
+      11.6
+    ],
+    "02-21": [
+      63.2,
+      11.6
+    ],
+    "02-22": [
+      63.5,
+      11.5
+    ],
+    "02-23": [
+      63.7,
+      11.5
+    ],
+    "02-24": [
+      64.0,
+      11.4
+    ],
+    "02-25": [
+      64.2,
+      11.4
+    ],
+    "02-26": [
+      64.5,
+      11.3
+    ],
+    "02-27": [
+      64.7,
+      11.2
+    ],
+    "02-28": [
+      65.0,
+      11.2
+    ],
+    "03-01": [
+      65.3,
+      11.1
+    ],
+    "03-02": [
+      65.6,
+      11.1
+    ],
+    "03-03": [
+      65.9,
+      11.0
+    ],
+    "03-04": [
+      66.2,
+      10.9
+    ],
+    "03-05": [
+      66.5,
+      10.9
+    ],
+    "03-06": [
+      66.8,
+      10.8
+    ],
+    "03-07": [
+      67.1,
+      10.7
+    ],
+    "03-08": [
+      67.4,
+      10.7
+    ],
+    "03-09": [
+      67.7,
+      10.6
+    ],
+    "03-10": [
+      68.0,
+      10.5
+    ],
+    "03-11": [
+      68.3,
+      10.4
+    ],
+    "03-12": [
+      68.7,
+      10.3
+    ],
+    "03-13": [
+      69.0,
+      10.2
+    ],
+    "03-14": [
+      69.3,
+      10.1
+    ],
+    "03-15": [
+      69.6,
+      10.0
+    ],
+    "03-16": [
+      70.0,
+      9.9
+    ],
+    "03-17": [
+      70.3,
+      9.8
+    ],
+    "03-18": [
+      70.6,
+      9.8
+    ],
+    "03-19": [
+      70.9,
+      9.7
+    ],
+    "03-20": [
+      71.2,
+      9.6
+    ],
+    "03-21": [
+      71.5,
+      9.5
+    ],
+    "03-22": [
+      71.8,
+      9.4
+    ],
+    "03-23": [
+      72.1,
+      9.3
+    ],
+    "03-24": [
+      72.4,
+      9.3
+    ],
+    "03-25": [
+      72.7,
+      9.2
+    ],
+    "03-26": [
+      73.0,
+      9.1
+    ],
+    "03-27": [
+      73.3,
+      9.1
+    ],
+    "03-28": [
+      73.5,
+      9.0
+    ],
+    "03-29": [
+      73.8,
+      9.0
+    ],
+    "03-30": [
+      74.1,
+      8.9
+    ],
+    "03-31": [
+      74.3,
+      8.8
+    ],
+    "04-01": [
+      74.6,
+      8.8
+    ],
+    "04-02": [
+      74.8,
+      8.7
+    ],
+    "04-03": [
+      75.0,
+      8.6
+    ],
+    "04-04": [
+      75.2,
+      8.5
+    ],
+    "04-05": [
+      75.4,
+      8.5
+    ],
+    "04-06": [
+      75.7,
+      8.4
+    ],
+    "04-07": [
+      75.9,
+      8.3
+    ],
+    "04-08": [
+      76.1,
+      8.2
+    ],
+    "04-09": [
+      76.2,
+      8.2
+    ],
+    "04-10": [
+      76.4,
+      8.1
+    ],
+    "04-11": [
+      76.6,
+      8.0
+    ],
+    "04-12": [
+      76.8,
+      7.9
+    ],
+    "04-13": [
+      77.0,
+      7.9
+    ],
+    "04-14": [
+      77.1,
+      7.8
+    ],
+    "04-15": [
+      77.3,
+      7.7
+    ],
+    "04-16": [
+      77.5,
+      7.7
+    ],
+    "04-17": [
+      77.7,
+      7.6
+    ],
+    "04-18": [
+      77.8,
+      7.5
+    ],
+    "04-19": [
+      78.0,
+      7.5
+    ],
+    "04-20": [
+      78.2,
+      7.4
+    ],
+    "04-21": [
+      78.4,
+      7.3
+    ],
+    "04-22": [
+      78.6,
+      7.3
+    ],
+    "04-23": [
+      78.8,
+      7.2
+    ],
+    "04-24": [
+      78.9,
+      7.1
+    ],
+    "04-25": [
+      79.1,
+      7.1
+    ],
+    "04-26": [
+      79.3,
+      7.0
+    ],
+    "04-27": [
+      79.6,
+      6.9
+    ],
+    "04-28": [
+      79.8,
+      6.9
+    ],
+    "04-29": [
+      80.0,
+      6.8
+    ],
+    "04-30": [
+      80.2,
+      6.8
+    ],
+    "05-01": [
+      80.5,
+      6.8
+    ],
+    "05-02": [
+      80.7,
+      6.7
+    ],
+    "05-03": [
+      81.0,
+      6.7
+    ],
+    "05-04": [
+      81.2,
+      6.7
+    ],
+    "05-05": [
+      81.5,
+      6.6
+    ],
+    "05-06": [
+      81.8,
+      6.6
+    ],
+    "05-07": [
+      82.0,
+      6.6
+    ],
+    "05-08": [
+      82.3,
+      6.6
+    ],
+    "05-09": [
+      82.6,
+      6.5
+    ],
+    "05-10": [
+      82.9,
+      6.5
+    ],
+    "05-11": [
+      83.2,
+      6.5
+    ],
+    "05-12": [
+      83.5,
+      6.5
+    ],
+    "05-13": [
+      83.9,
+      6.4
+    ],
+    "05-14": [
+      84.2,
+      6.4
+    ],
+    "05-15": [
+      84.5,
+      6.4
+    ],
+    "05-16": [
+      84.8,
+      6.3
+    ],
+    "05-17": [
+      85.2,
+      6.3
+    ],
+    "05-18": [
+      85.5,
+      6.3
+    ],
+    "05-19": [
+      85.8,
+      6.2
+    ],
+    "05-20": [
+      86.1,
+      6.2
+    ],
+    "05-21": [
+      86.5,
+      6.1
+    ],
+    "05-22": [
+      86.8,
+      6.1
+    ],
+    "05-23": [
+      87.1,
+      6.1
+    ],
+    "05-24": [
+      87.4,
+      6.0
+    ],
+    "05-25": [
+      87.8,
+      6.0
+    ],
+    "05-26": [
+      88.1,
+      5.9
+    ],
+    "05-27": [
+      88.4,
+      5.9
+    ],
+    "05-28": [
+      88.7,
+      5.8
+    ],
+    "05-29": [
+      89.0,
+      5.8
+    ],
+    "05-30": [
+      89.3,
+      5.7
+    ],
+    "05-31": [
+      89.6,
+      5.7
+    ],
+    "06-01": [
+      89.8,
+      5.6
+    ],
+    "06-02": [
+      90.1,
+      5.6
+    ],
+    "06-03": [
+      90.4,
+      5.5
+    ],
+    "06-04": [
+      90.6,
+      5.4
+    ],
+    "06-05": [
+      90.8,
+      5.4
+    ],
+    "06-06": [
+      91.1,
+      5.3
+    ],
+    "06-07": [
+      91.3,
+      5.3
+    ],
+    "06-08": [
+      91.5,
+      5.2
+    ],
+    "06-09": [
+      91.7,
+      5.2
+    ],
+    "06-10": [
+      91.9,
+      5.1
+    ],
+    "06-11": [
+      92.1,
+      5.1
+    ],
+    "06-12": [
+      92.3,
+      5.0
+    ],
+    "06-13": [
+      92.5,
+      5.0
+    ],
+    "06-14": [
+      92.7,
+      5.0
+    ],
+    "06-15": [
+      92.8,
+      4.9
+    ],
+    "06-16": [
+      93.0,
+      4.9
+    ],
+    "06-17": [
+      93.1,
+      4.9
+    ],
+    "06-18": [
+      93.3,
+      4.8
+    ],
+    "06-19": [
+      93.4,
+      4.8
+    ],
+    "06-20": [
+      93.6,
+      4.8
+    ],
+    "06-21": [
+      93.7,
+      4.8
+    ],
+    "06-22": [
+      93.8,
+      4.7
+    ],
+    "06-23": [
+      94.0,
+      4.7
+    ],
+    "06-24": [
+      94.1,
+      4.7
+    ],
+    "06-25": [
+      94.2,
+      4.7
+    ],
+    "06-26": [
+      94.4,
+      4.7
+    ],
+    "06-27": [
+      94.5,
+      4.7
+    ],
+    "06-28": [
+      94.6,
+      4.7
+    ],
+    "06-29": [
+      94.7,
+      4.7
+    ],
+    "06-30": [
+      94.9,
+      4.7
+    ],
+    "07-01": [
+      95.0,
+      4.7
+    ],
+    "07-02": [
+      95.1,
+      4.7
+    ],
+    "07-03": [
+      95.2,
+      4.7
+    ],
+    "07-04": [
+      95.4,
+      4.7
+    ],
+    "07-05": [
+      95.5,
+      4.7
+    ],
+    "07-06": [
+      95.6,
+      4.7
+    ],
+    "07-07": [
+      95.8,
+      4.7
+    ],
+    "07-08": [
+      95.9,
+      4.7
+    ],
+    "07-09": [
+      96.0,
+      4.7
+    ],
+    "07-10": [
+      96.2,
+      4.7
+    ],
+    "07-11": [
+      96.3,
+      4.7
+    ],
+    "07-12": [
+      96.5,
+      4.8
+    ],
+    "07-13": [
+      96.6,
+      4.8
+    ],
+    "07-14": [
+      96.7,
+      4.8
+    ],
+    "07-15": [
+      96.9,
+      4.8
+    ],
+    "07-16": [
+      97.0,
+      4.8
+    ],
+    "07-17": [
+      97.1,
+      4.8
+    ],
+    "07-18": [
+      97.3,
+      4.8
+    ],
+    "07-19": [
+      97.4,
+      4.9
+    ],
+    "07-20": [
+      97.5,
+      4.9
+    ],
+    "07-21": [
+      97.6,
+      4.9
+    ],
+    "07-22": [
+      97.7,
+      4.9
+    ],
+    "07-23": [
+      97.8,
+      5.0
+    ],
+    "07-24": [
+      97.9,
+      5.0
+    ],
+    "07-25": [
+      98.0,
+      5.0
+    ],
+    "07-26": [
+      98.1,
+      5.1
+    ],
+    "07-27": [
+      98.2,
+      5.1
+    ],
+    "07-28": [
+      98.3,
+      5.1
+    ],
+    "07-29": [
+      98.3,
+      5.2
+    ],
+    "07-30": [
+      98.4,
+      5.2
+    ],
+    "07-31": [
+      98.4,
+      5.3
+    ],
+    "08-01": [
+      98.5,
+      5.3
+    ],
+    "08-02": [
+      98.5,
+      5.4
+    ],
+    "08-03": [
+      98.5,
+      5.4
+    ],
+    "08-04": [
+      98.5,
+      5.4
+    ],
+    "08-05": [
+      98.5,
+      5.5
+    ],
+    "08-06": [
+      98.4,
+      5.5
+    ],
+    "08-07": [
+      98.4,
+      5.5
+    ],
+    "08-08": [
+      98.3,
+      5.6
+    ],
+    "08-09": [
+      98.3,
+      5.6
+    ],
+    "08-10": [
+      98.2,
+      5.6
+    ],
+    "08-11": [
+      98.1,
+      5.6
+    ],
+    "08-12": [
+      98.0,
+      5.7
+    ],
+    "08-13": [
+      97.9,
+      5.7
+    ],
+    "08-14": [
+      97.8,
+      5.8
+    ],
+    "08-15": [
+      97.6,
+      5.8
+    ],
+    "08-16": [
+      97.5,
+      5.8
+    ],
+    "08-17": [
+      97.3,
+      5.8
+    ],
+    "08-18": [
+      97.2,
+      5.9
+    ],
+    "08-19": [
+      97.0,
+      5.9
+    ],
+    "08-20": [
+      96.8,
+      5.9
+    ],
+    "08-21": [
+      96.6,
+      6.0
+    ],
+    "08-22": [
+      96.4,
+      6.0
+    ],
+    "08-23": [
+      96.2,
+      6.0
+    ],
+    "08-24": [
+      96.0,
+      6.1
+    ],
+    "08-25": [
+      95.8,
+      6.1
+    ],
+    "08-26": [
+      95.6,
+      6.1
+    ],
+    "08-27": [
+      95.3,
+      6.1
+    ],
+    "08-28": [
+      95.1,
+      6.2
+    ],
+    "08-29": [
+      94.8,
+      6.2
+    ],
+    "08-30": [
+      94.6,
+      6.2
+    ],
+    "08-31": [
+      94.3,
+      6.2
+    ],
+    "09-01": [
+      94.1,
+      6.2
+    ],
+    "09-02": [
+      93.8,
+      6.3
+    ],
+    "09-03": [
+      93.6,
+      6.3
+    ],
+    "09-04": [
+      93.3,
+      6.3
+    ],
+    "09-05": [
+      93.0,
+      6.4
+    ],
+    "09-06": [
+      92.7,
+      6.4
+    ],
+    "09-07": [
+      92.5,
+      6.5
+    ],
+    "09-08": [
+      92.2,
+      6.5
+    ],
+    "09-09": [
+      91.9,
+      6.6
+    ],
+    "09-10": [
+      91.6,
+      6.6
+    ],
+    "09-11": [
+      91.4,
+      6.6
+    ],
+    "09-12": [
+      91.1,
+      6.7
+    ],
+    "09-13": [
+      90.8,
+      6.7
+    ],
+    "09-14": [
+      90.5,
+      6.7
+    ],
+    "09-15": [
+      90.2,
+      6.8
+    ],
+    "09-16": [
+      89.9,
+      6.8
+    ],
+    "09-17": [
+      89.7,
+      6.9
+    ],
+    "09-18": [
+      89.4,
+      6.9
+    ],
+    "09-19": [
+      89.1,
+      6.9
+    ],
+    "09-20": [
+      88.8,
+      7.0
+    ],
+    "09-21": [
+      88.5,
+      7.0
+    ],
+    "09-22": [
+      88.2,
+      7.1
+    ],
+    "09-23": [
+      87.8,
+      7.1
+    ],
+    "09-24": [
+      87.5,
+      7.1
+    ],
+    "09-25": [
+      87.2,
+      7.2
+    ],
+    "09-26": [
+      86.9,
+      7.3
+    ],
+    "09-27": [
+      86.6,
+      7.3
+    ],
+    "09-28": [
+      86.3,
+      7.4
+    ],
+    "09-29": [
+      85.9,
+      7.5
+    ],
+    "09-30": [
+      85.6,
+      7.5
+    ],
+    "10-01": [
+      85.2,
+      7.6
+    ],
+    "10-02": [
+      84.9,
+      7.6
+    ],
+    "10-03": [
+      84.5,
+      7.6
+    ],
+    "10-04": [
+      84.2,
+      7.7
+    ],
+    "10-05": [
+      83.8,
+      7.7
+    ],
+    "10-06": [
+      83.5,
+      7.8
+    ],
+    "10-07": [
+      83.1,
+      7.8
+    ],
+    "10-08": [
+      82.7,
+      7.9
+    ],
+    "10-09": [
+      82.3,
+      7.9
+    ],
+    "10-10": [
+      82.0,
+      8.0
+    ],
+    "10-11": [
+      81.6,
+      8.0
+    ],
+    "10-12": [
+      81.2,
+      8.1
+    ],
+    "10-13": [
+      80.8,
+      8.2
+    ],
+    "10-14": [
+      80.4,
+      8.3
+    ],
+    "10-15": [
+      80.0,
+      8.4
+    ],
+    "10-16": [
+      79.6,
+      8.5
+    ],
+    "10-17": [
+      79.2,
+      8.5
+    ],
+    "10-18": [
+      78.8,
+      8.6
+    ],
+    "10-19": [
+      78.4,
+      8.7
+    ],
+    "10-20": [
+      78.0,
+      8.8
+    ],
+    "10-21": [
+      77.5,
+      8.9
+    ],
+    "10-22": [
+      77.1,
+      8.9
+    ],
+    "10-23": [
+      76.7,
+      9.0
+    ],
+    "10-24": [
+      76.3,
+      9.1
+    ],
+    "10-25": [
+      75.9,
+      9.2
+    ],
+    "10-26": [
+      75.5,
+      9.3
+    ],
+    "10-27": [
+      75.1,
+      9.3
+    ],
+    "10-28": [
+      74.7,
+      9.4
+    ],
+    "10-29": [
+      74.3,
+      9.4
+    ],
+    "10-30": [
+      73.9,
+      9.5
+    ],
+    "10-31": [
+      73.5,
+      9.5
+    ],
+    "11-01": [
+      73.1,
+      9.6
+    ],
+    "11-02": [
+      72.7,
+      9.6
+    ],
+    "11-03": [
+      72.3,
+      9.7
+    ],
+    "11-04": [
+      71.9,
+      9.7
+    ],
+    "11-05": [
+      71.5,
+      9.8
+    ],
+    "11-06": [
+      71.1,
+      9.8
+    ],
+    "11-07": [
+      70.7,
+      9.8
+    ],
+    "11-08": [
+      70.4,
+      9.8
+    ],
+    "11-09": [
+      70.0,
+      9.9
+    ],
+    "11-10": [
+      69.6,
+      9.9
+    ],
+    "11-11": [
+      69.3,
+      9.9
+    ],
+    "11-12": [
+      68.9,
+      9.9
+    ],
+    "11-13": [
+      68.5,
+      9.9
+    ],
+    "11-14": [
+      68.2,
+      9.9
+    ],
+    "11-15": [
+      67.8,
+      9.9
+    ],
+    "11-16": [
+      67.5,
+      9.9
+    ],
+    "11-17": [
+      67.2,
+      9.9
+    ],
+    "11-18": [
+      66.8,
+      9.9
+    ],
+    "11-19": [
+      66.5,
+      10.0
+    ],
+    "11-20": [
+      66.1,
+      10.0
+    ],
+    "11-21": [
+      65.8,
+      10.0
+    ],
+    "11-22": [
+      65.5,
+      10.0
+    ],
+    "11-23": [
+      65.2,
+      10.0
+    ],
+    "11-24": [
+      64.8,
+      10.1
+    ],
+    "11-25": [
+      64.5,
+      10.1
+    ],
+    "11-26": [
+      64.2,
+      10.1
+    ],
+    "11-27": [
+      63.9,
+      10.1
+    ],
+    "11-28": [
+      63.6,
+      10.2
+    ],
+    "11-29": [
+      63.3,
+      10.2
+    ],
+    "11-30": [
+      63.0,
+      10.2
+    ],
+    "12-01": [
+      62.7,
+      10.3
+    ],
+    "12-02": [
+      62.4,
+      10.3
+    ],
+    "12-03": [
+      62.1,
+      10.3
+    ],
+    "12-04": [
+      61.8,
+      10.4
+    ],
+    "12-05": [
+      61.5,
+      10.4
+    ],
+    "12-06": [
+      61.3,
+      10.4
+    ],
+    "12-07": [
+      61.0,
+      10.4
+    ],
+    "12-08": [
+      60.7,
+      10.5
+    ],
+    "12-09": [
+      60.5,
+      10.5
+    ],
+    "12-10": [
+      60.2,
+      10.5
+    ],
+    "12-11": [
+      60.0,
+      10.6
+    ],
+    "12-12": [
+      59.7,
+      10.6
+    ],
+    "12-13": [
+      59.5,
+      10.7
+    ],
+    "12-14": [
+      59.3,
+      10.7
+    ],
+    "12-15": [
+      59.1,
+      10.8
+    ],
+    "12-16": [
+      58.9,
+      10.8
+    ],
+    "12-17": [
+      58.7,
+      10.8
+    ],
+    "12-18": [
+      58.5,
+      10.9
+    ],
+    "12-19": [
+      58.3,
+      10.9
+    ],
+    "12-20": [
+      58.1,
+      10.9
+    ],
+    "12-21": [
+      58.0,
+      11.0
+    ],
+    "12-22": [
+      57.8,
+      11.0
+    ],
+    "12-23": [
+      57.7,
+      11.1
+    ],
+    "12-24": [
+      57.5,
+      11.1
+    ],
+    "12-25": [
+      57.4,
+      11.1
+    ],
+    "12-26": [
+      57.3,
+      11.2
+    ],
+    "12-27": [
+      57.2,
+      11.2
+    ],
+    "12-28": [
+      57.1,
+      11.3
+    ],
+    "12-29": [
+      57.0,
+      11.3
+    ],
+    "12-30": [
+      57.0,
+      11.4
+    ],
+    "12-31": [
+      56.9,
+      11.4
+    ]
+  }
+}
