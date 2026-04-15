@@ -5,6 +5,7 @@ mod ctf_math;
 mod executor;
 mod mint_executor;
 mod paper;
+mod portfolio;
 mod presigner;
 mod pricer;
 mod scanner;

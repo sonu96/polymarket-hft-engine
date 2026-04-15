@@ -60,7 +60,7 @@ pub struct Config {
     /// Where to append the structured CSV log.
     pub paper_log_path: String,
 
-    // -------- NO-edge farmer (Phase 3) --------
+    // -------- Phase 3 NO-edge farmer (watchers) --------
     /// METAR poll cadence per seeded ICAO, in seconds. Default 300 (5 min).
     /// At 5 min and 10 US stations that's 120 req/hr — under the 132 req/hr
     /// AviationWeather budget called out in the design doc.
@@ -70,6 +70,24 @@ pub struct Config {
     /// "revert to forecast-only σ" tick (`remaining_var_frac = 1.0`) for
     /// that station and keeps trying. Default 900 (15 min = 3 missed cycles).
     pub no_edge_nowcast_staleness_kill_secs: u64,
+
+    // -------- Phase 3 NO-edge farmer (portfolio caps) --------
+    // These are deliberately separate from `daily_cap_usdc` (Phase 2's mint
+    // throttle, recycled per mint). The farmer tracks deployed notional that
+    // is locked until settlement — a different unit. See
+    // `docs/PHASE3_NO_EDGE_FARMER.md` §4.2.
+    /// Per-bucket (single market) deployed-notional cap.
+    pub no_edge_max_notional_per_market_usdc: f64,
+    /// Per (city × date) event deployed-notional cap.
+    pub no_edge_max_notional_per_event_usdc: f64,
+    /// Per-city daily deployed-notional cap.
+    pub no_edge_max_notional_per_city_usdc: f64,
+    /// Global deployed-notional cap across all NO-edge orders.
+    pub no_edge_max_total_deployed_usdc: f64,
+    /// Hard ceiling on simultaneously-open NO-edge orders.
+    pub no_edge_max_open_orders: usize,
+    /// Path to the persisted `NoEdgeState` JSON file.
+    pub no_edge_state_path: String,
 }
 
 impl Default for Config {
@@ -103,8 +121,17 @@ impl Default for Config {
             paper_max_concurrent_events: 8,
             paper_log_path: "paper_run.log".to_string(),
 
+<<<<<<< HEAD
             no_edge_metar_poll_secs: 300,
             no_edge_nowcast_staleness_kill_secs: 900,
+=======
+            no_edge_max_notional_per_market_usdc: 150.0,
+            no_edge_max_notional_per_event_usdc: 500.0,
+            no_edge_max_notional_per_city_usdc: 800.0,
+            no_edge_max_total_deployed_usdc: 2000.0,
+            no_edge_max_open_orders: 60,
+            no_edge_state_path: "weather-bot/no_edge_state.json".to_string(),
+>>>>>>> 2d61d16 (feat(phase3,#8): portfolio facade + NoEdgeState)
         }
     }
 }
@@ -196,6 +223,7 @@ impl Config {
             cfg.paper_log_path = v;
         }
 
+<<<<<<< HEAD
         if let Ok(v) = std::env::var("NO_EDGE_METAR_POLL_SECS") {
             if let Ok(n) = v.parse() {
                 cfg.no_edge_metar_poll_secs = n;
@@ -206,6 +234,37 @@ impl Config {
                 cfg.no_edge_nowcast_staleness_kill_secs = n;
             }
         }
+=======
+        // --- Phase 3 NO-edge farmer caps ---
+        if let Ok(v) = std::env::var("NO_EDGE_MAX_NOTIONAL_PER_MARKET_USDC") {
+            if let Ok(f) = v.parse() {
+                cfg.no_edge_max_notional_per_market_usdc = f;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_MAX_NOTIONAL_PER_EVENT_USDC") {
+            if let Ok(f) = v.parse() {
+                cfg.no_edge_max_notional_per_event_usdc = f;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_MAX_NOTIONAL_PER_CITY_USDC") {
+            if let Ok(f) = v.parse() {
+                cfg.no_edge_max_notional_per_city_usdc = f;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_MAX_TOTAL_DEPLOYED_USDC") {
+            if let Ok(f) = v.parse() {
+                cfg.no_edge_max_total_deployed_usdc = f;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_MAX_OPEN_ORDERS") {
+            if let Ok(n) = v.parse() {
+                cfg.no_edge_max_open_orders = n;
+            }
+        }
+        if let Ok(v) = std::env::var("NO_EDGE_STATE_PATH") {
+            cfg.no_edge_state_path = v;
+        }
+>>>>>>> 2d61d16 (feat(phase3,#8): portfolio facade + NoEdgeState)
 
         // Invariant: paper_mode forces simulation
         if cfg.paper_mode {
