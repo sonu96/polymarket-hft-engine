@@ -1,7 +1,19 @@
 # Phase 3 backtest — historical data inventory
 
-## Summary
-**Can we run a 90-day backtest?** Yes, with a real intraday fill simulator. All five sources work and are free. The only friction is that Polymarket city-bucket weather markets only started running daily in **Jan 2025**, and the CLOB `prices-history` endpoint requires explicit `startTs`/`endTs` (not `interval=1d`) to return useful data.
+## Summary (revised — Supabase canonical)
+**Can we run a 90-day backtest?** Yes, with a **real L2 book replay** — NOT a trade-print proxy as the original draft said. The discovery that changes everything: the `polymarket-weather-bot` repo has a sibling Supabase project with a pre-designed `weather_*` schema + a working ingest pipeline for Predexon orderbook snapshots (51,762 rows already cached for non-weather markets, proving the pipeline works). Migration `002_phase3_no_edge_farmer.sql` (in the sibling `daily-liquidity-bot` repo under `src/weather_bot/migrations/`) extends the schema with t2m_c for Celsius, order_id/mode/adverse_fill on weather_positions, and backtest isolation tables. **The backtest becomes: query Supabase, not fetch live.**
+
+### Data flow at a glance
+```
+Gamma /events?closed=true   ┐
+Predexon /v2/polymarket/    ┤
+  orderbooks (L2 snapshots) ├─▶  Python backfill script  ─▶  Supabase tables
+Open-Meteo                  │     (scripts/backfill_phase3_weather.py)      │
+  historical-forecast-api   │                                                │
+Open-Meteo /v1/archive      ┘                                                ▼
+  (ERA5 settlement truth)                                          Backtest runner
+                                                                   (Python, queries SQL)
+```
 
 ## Source 1: Polymarket closed events (Gamma)
 - **URL tested:** `https://gamma-api.polymarket.com/events?slug=highest-temperature-in-nyc-on-march-15-2026`
@@ -10,13 +22,19 @@
 - **Pagination:** `limit` caps at 500, use `offset=`. Total weather events >1000.
 - **Gotchas:** `outcomePrices` is a JSON string, not a list. `clobTokenIds` is a JSON string too. Tag-filtered `order=end_date&ascending=false` returns interleaved order — sort client-side by `endDate`.
 
-## Source 2: Polymarket CLOB price history
-- **URL tested:** `https://clob.polymarket.com/prices-history?market=1472199860682289398941707323219756648626024204458895625831792653471681784244&startTs=1773100000&endTs=1773700000&fidelity=10`
-- **Intraday data available?** **YES.** That request returned **391 ticks** for one bucket over ~3 days at 10-minute fidelity. `interval=max&fidelity=60` only returned 21 ticks for the same token because `interval=max` clamps to a window that doesn't capture pre-resolution trading. **Use `startTs`/`endTs` (unix seconds) + `fidelity` (minutes), never `interval=1d`/`1h` (returns empty for short-lived buckets).**
-- **Granularities supported:** `fidelity` is in minutes; minimum 1 (`1m` interval) is 10 min. Tested values: 10, 60, 600. `fidelity=10` is the practical floor.
-- **Critical caveat:** This is **midpoint/last-trade time series, NOT order book best-bid/best-ask**. To simulate whether our resting NO ask at `μ−5%` would have crossed, we need to assume that any tick observed at `p ≥ our_ask` represents a taker that would have lifted our ask. This is a reasonable approximation for thinly-traded buckets where every print is meaningful, but it's not a real book replay. **No historical L2 book endpoint exists** — the only way to get historical book state is the WS user channel or Predexon `/orderbook` snapshots that we'd have had to record live.
-- **Date range:** Token-lifetime; for daily city-bucket markets that means roughly creation-time (typically T-2 days) through resolution.
-- **First/last tick example (NYC Mar 15 winning bucket):** first `t=1773398433` (2026-03-13 21:20 UTC), last `t=1773645630` (2026-03-16 17:00 UTC), `p` ranging 0.31 → 0.9995.
+## Source 2: Predexon orderbook snapshots (primary — **real L2 history**)
+- **Endpoint:** `GET https://api.predexon.com/v2/polymarket/orderbooks`
+- **Auth:** `x-api-key` header (env var `PREDEXON_API_KEY`).
+- **Parameters:** `token_id` (decimal U256 string), `start_time` + `end_time` (**Unix milliseconds — not seconds**, per the Predexon timestamp gotcha), `limit` 1-200 (default 100), `pagination_key` for base64 cursor.
+- **Response:** `{snapshots: [{asks: [{price, size}, ...], bids: [{price, size}, ...], timestamp, assetId, tickSize, indexedAt, market, hash}], pagination: {...}}`. **Full L2 ladder per snapshot** — multiple levels on each side with per-level `(price, size)`. Live verification (sample NYC Mar 15 winning bucket): 3-snapshot page returned 13 ask levels and 4 bid levels on one snapshot. Exactly what the backtest fill simulator needs.
+- **Rate limit:** "Free & Unlimited. This endpoint does not count toward your monthly usage limits." — per Predexon docs.
+- **Date range:** Historical data from **January 1st, 2026 onward** per Predexon docs. This tightens the backtest window from the original 12-month plan to **2026-01-01 → 2026-04-14** (~3.5 months).
+- **Storage:** snapshots get upserted to Supabase `polymarket_orderbook_snapshots` which already has a schema (`bids` + `asks` jsonb columns, best-bid/ask, spread, mid, n_levels, depth). The table already has 51,762 non-weather rows proving the ingest pipeline works — we just need to point it at weather tokens.
+- **Python wrapper exists:** `daily-liquidity-bot/src/weather_bot/wx_predexon.py::PredexonClient.get_orderbook_snapshots` auto-paginates via `pagination_key` until `has_more=false`.
+
+## Source 2b: Polymarket CLOB `/prices-history` (fallback only)
+- Trade-print timeseries, not L2. Kept as a cross-check for Predexon snapshots in case of ingest gaps. URL: `https://clob.polymarket.com/prices-history?market=<token>&startTs=<seconds>&endTs=<seconds>&fidelity=10`. **Note the unit difference:** CLOB uses **seconds**, Predexon uses **milliseconds**. Don't mix them.
+- First/last tick example (NYC Mar 15 winning bucket): first `t=1773398433` (2026-03-13 21:20 UTC), last `t=1773645630` (2026-03-16 17:00 UTC), `p` ranging 0.31 → 0.9995. Confirms the bucket was active and resolved YES.
 
 ## Source 3: Open-Meteo historical forecast (forecast-as-of-date, not reanalysis)
 - **URL tested:** `https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=40.77&longitude=-73.87&daily=temperature_2m_max&temperature_unit=fahrenheit&start_date=2026-03-13&end_date=2026-03-15&models=gfs_seamless,ecmwf_ifs025`
@@ -38,10 +56,17 @@
 - **Backtest use:** compute daily TMAX as `max(tmpf) over local-day window` and reconcile with ERA5 (Source 4) before trusting bin assignment.
 
 ## Recommended backtest window
-**2025-04-01 through 2026-03-31 (12 months).** City-bucket markets are dense from Jan 2025; sticking to Apr-onward gives 365 days × ~10 cities × ~9 buckets/day ≈ 30k market-buckets. Use `startTs`/`endTs` price-history queries and treat each tick `p ≥ μ−5%` as a paper fill at our ask. Use ERA5 archive as primary settlement truth, METAR as audit.
+**2026-01-01 → 2026-04-14 (~3.5 months).** Constrained by Predexon's stated historical coverage (Jan 1 2026 onwards). Expect ~11 cities × 100 days × ~11 buckets/day × YES+NO = ~24k token-windows, each with hundreds of L2 snapshots. Supabase `polymarket_orderbook_snapshots` can hold this (Postgres handles the volume comfortably).
+
+**Fill simulator model (revised given L2 data):** at each snapshot, walk the full ask ladder for the NO token. If our paper target price `μ_no − 0.05` sits at or below the ladder's top levels, we'd be the best ask. A taker arrives when the snapshot's best_bid crosses up through our price — compute `fill_size = min(our_size, total ask-side size at or below best_bid)`. At fill time, recompute `fair_p_no` with the contemporaneous forecast to flag `adverse_fill=true` if the edge collapsed between post and fill. All much cleaner than the original trade-print proxy.
+
+## Data backfill workstream
+- **Migration applied:** `daily-liquidity-bot/src/weather_bot/migrations/002_phase3_no_edge_farmer.sql` adds `weather_forecasts.t2m_c`, `weather_positions.order_id/mode/adverse_fill`, and the `weather_backtest_runs` + `weather_backtest_fills` tables.
+- **Python backfill script (ticket #35):** `scripts/backfill_phase3_weather.py` pulls from Gamma (event discovery), Predexon (orderbook snapshots + trades), Open-Meteo historical-forecast-api (contemporaneous forecasts), and Open-Meteo archive (ERA5 settlement truth). Upserts everything to Supabase via the existing `wx_supabase` wrapper.
+- **Backtest runner (ticket #29 — revised):** Python script that SELECTs from the now-populated Supabase tables and runs the fill simulator. No live fetching.
 
 ## Open questions
-- **Oldest city-bucket weather event:** Jan 2025 (`highest-temperature-in-nyc-on-jan-22`, `-23`, etc.). Earlier 2024 weather events exist but are monthly-anomaly format, not the same product.
-- **Resolved outcomes always in event response:** **Yes** — `outcomePrices` field is sufficient when `closed=true` and `umaResolutionStatus=resolved`. No separate endpoint.
-- **Sub-10-min price data for backfill:** No. CLOB `fidelity` floor is 10 minutes. For finer resolution we'd have to record live `book` channel WS frames going forward, which doesn't help historical backtests.
-- **L2 book history:** Not available from any public endpoint. Backtest fill model must use trade prints as a proxy for taker activity.
+- **Oldest city-bucket weather event:** Jan 2025 per Gamma, but **Predexon only covers Jan 2026+**, so the backtest starts there. For 2025 data we'd need a different historical source — out of scope for first backtest.
+- **Lucknow settlement truth:** Open-Meteo ERA5 archive covers VILK lat/lon. Iowa Mesonet does NOT have VILK. If ERA5 disagrees with Polymarket's resolution for Lucknow, we'd need NOAA ISD India as a fallback — check only if spot-verification fails.
+- **Sub-10-min data:** Predexon orderbook snapshots have no stated fidelity floor — they're event-driven, not bar-sampled. Cadence depends on how often the book actually moved.
+- **L2 book history:** **SOLVED — Predexon provides it.** See Source 2 above.
