@@ -4856,6 +4856,7 @@ dependencies = [
  "alloy-signer-local",
  "alloy-sol-types",
  "anyhow",
+ "async-trait",
  "base64",
  "chrono",
  "chrono-tz",
@@ -4880,6 +4881,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "uuid",
 ]
 
 [[package]]

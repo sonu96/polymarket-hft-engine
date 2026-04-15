@@ -29,7 +29,9 @@
 //! modeled. Consider it upside — the measured ROI is a floor.
 
 use crate::types::{BucketInfo, WeatherEvent};
-use anyhow::{Context, Result};
+use alloy_primitives::U256;
+use anyhow::{anyhow, Context, Result};
+use polymarket_client_sdk::clob::types::Side;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -257,6 +259,36 @@ impl PaperLog {
     }
 }
 
+// -------- Resting maker orders (Phase 3 ticket #9) --------
+
+/// One synthetic maker order that the no-edge farmer has "posted" to a
+/// `PaperEngine`. Lives in `PaperEngine::resting_orders` until the event loop
+/// feeds a `BookUpdate` that crosses it (fill) or a `cancel_order` call
+/// removes it.
+///
+/// `fair_p_no_at_post` + `min_edge_at_post` are snapshots of the price-of-NO
+/// and edge threshold at the instant of posting. When a fill eventually
+/// happens we compare against the current fair — if it has moved inside the
+/// `min_edge` guardrail we flag the fill as adverse and log it to
+/// `paper_no_edge.csv` so backtests can measure how often the maker was
+/// picked off.
+#[derive(Debug, Clone)]
+pub struct PaperRestingOrder {
+    pub order_id: String,
+    pub token_id: U256,
+    pub side: Side,
+    pub price: f64,
+    pub size: f64,
+    pub posted_at_ns: u128,
+    pub fair_p_no_at_post: f64,
+    pub min_edge_at_post: f64,
+    pub filled: bool,
+    pub filled_shares: f64,
+    pub filled_avg_price: f64,
+    pub filled_at_ns: Option<u128>,
+    pub adverse_fill: bool,
+}
+
 // -------- Paper engine (the thing main.rs calls) --------
 
 pub struct PaperEngine {
@@ -264,11 +296,15 @@ pub struct PaperEngine {
     clob_url: String,
     account: Mutex<PaperAccount>,
     log: PaperLog,
+    paper_log_path: PathBuf,
     max_concurrent_events: usize,
     mint_amount_usdc: f64,
     min_dump_price: f64,
     dump_fraction: f64,
     taker_fee_bps: u16,
+    /// Synthetic maker orders that have been "posted" via the `OrderSink`
+    /// impl. Keyed by the synth `paper-<uuid>` order id.
+    resting_orders: Mutex<HashMap<String, PaperRestingOrder>>,
 }
 
 impl PaperEngine {
@@ -285,16 +321,19 @@ impl PaperEngine {
             .timeout(std::time::Duration::from_secs(5))
             .build()
             .unwrap_or_default();
+        let paper_log_path = log_path.clone();
         Self {
             http,
             clob_url,
             account: Mutex::new(PaperAccount::new(starting_bankroll)),
             log: PaperLog::new(log_path),
+            paper_log_path,
             max_concurrent_events,
             mint_amount_usdc,
             min_dump_price,
             dump_fraction,
             taker_fee_bps: DEFAULT_TAKER_FEE_BPS,
+            resting_orders: Mutex::new(HashMap::new()),
         }
     }
 
@@ -505,6 +544,289 @@ impl PaperEngine {
     pub async fn snapshot(&self) -> PaperAccount {
         self.account.lock().await.clone()
     }
+
+    // -------- Resting maker path (Phase 3 ticket #9) --------
+
+    /// Append one row to the adverse-fill CSV. Columns (comma-separated):
+    ///   ts_ns,token_id,side,price,fill_size,fair_at_post,fair_at_fill,
+    ///   edge_at_post,edge_at_fill,adverse_fill
+    fn append_no_edge_row(
+        &self,
+        ts_ns: u128,
+        token_id: &U256,
+        side: Side,
+        price: f64,
+        fill_size: f64,
+        fair_at_post: f64,
+        fair_at_fill: f64,
+        edge_at_post: f64,
+        edge_at_fill: f64,
+        adverse_fill: bool,
+    ) {
+        use std::io::Write;
+        let mut path = self.paper_log_path.clone();
+        let new_name = match path.file_name() {
+            Some(n) => {
+                let mut s = n.to_os_string();
+                s.push(".no_edge.csv");
+                s
+            }
+            None => std::ffi::OsString::from("paper.no_edge.csv"),
+        };
+        path.set_file_name(new_name);
+
+        if let Some(dir) = path.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+
+        let side_str = match side {
+            Side::Buy => "BUY",
+            Side::Sell => "SELL",
+            _ => "UNKNOWN",
+        };
+        let row = format!(
+            "{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{}\n",
+            ts_ns,
+            token_id,
+            side_str,
+            price,
+            fill_size,
+            fair_at_post,
+            fair_at_fill,
+            edge_at_post,
+            edge_at_fill,
+            adverse_fill
+        );
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            let _ = f.write_all(row.as_bytes());
+        }
+    }
+
+    /// Synthetic "post" for the paper OrderSink impl. Bankroll-gated: if the
+    /// virtual account can't cover `size * price`, returns an error. Otherwise
+    /// debits the bankroll, inserts a `PaperRestingOrder`, and returns a synth
+    /// `paper-<uuid>` order id.
+    pub async fn paper_post_limit_order(
+        &self,
+        token_id: U256,
+        price: f64,
+        size: f64,
+        side: Side,
+        fair_p_no_at_post: f64,
+        min_edge_at_post: f64,
+    ) -> Result<String> {
+        let required = size * price;
+        {
+            let mut acct = self.account.lock().await;
+            if acct.bankroll_usdc < required {
+                return Err(anyhow!(
+                    "paper_post_limit_order: insufficient bankroll ${:.4} < required ${:.4}",
+                    acct.bankroll_usdc,
+                    required
+                ));
+            }
+            acct.bankroll_usdc -= required;
+        }
+
+        let order_id = format!("paper-{}", uuid::Uuid::new_v4());
+        let posted_at_ns = crate::types::now_ns();
+        let order = PaperRestingOrder {
+            order_id: order_id.clone(),
+            token_id,
+            side,
+            price,
+            size,
+            posted_at_ns,
+            fair_p_no_at_post,
+            min_edge_at_post,
+            filled: false,
+            filled_shares: 0.0,
+            filled_avg_price: 0.0,
+            filled_at_ns: None,
+            adverse_fill: false,
+        };
+        self.resting_orders
+            .lock()
+            .await
+            .insert(order_id.clone(), order);
+        Ok(order_id)
+    }
+
+    /// Idempotent cancel. If the order exists and isn't fully filled, refund
+    /// the (remaining) reserved bankroll. Unknown ids are a debug log + Ok.
+    pub async fn paper_cancel_order(&self, order_id: &str) -> Result<()> {
+        let removed = self.resting_orders.lock().await.remove(order_id);
+        match removed {
+            Some(order) => {
+                if !order.filled {
+                    let remaining = (order.size - order.filled_shares).max(0.0);
+                    let refund = remaining * order.price;
+                    if refund > 0.0 {
+                        self.account.lock().await.bankroll_usdc += refund;
+                    }
+                }
+                Ok(())
+            }
+            None => {
+                tracing::debug!(
+                    "[PAPER] cancel_order: unknown id {} (idempotent noop)",
+                    order_id
+                );
+                Ok(())
+            }
+        }
+    }
+
+    /// Called from the event loop whenever a `BookUpdate` arrives for a token
+    /// that may have resting paper orders. Walks every order matching
+    /// `update.token_id`, fills any whose price is crossed by the opposing
+    /// top of book, and flags the fill as adverse if the current fair has
+    /// moved inside the `min_edge_at_post` guardrail.
+    pub async fn on_book_update(
+        &self,
+        update: &crate::types::BookUpdate,
+        fair_p_no_at_fill: f64,
+    ) {
+        let mut orders = self.resting_orders.lock().await;
+        let now = crate::types::now_ns();
+        for order in orders.values_mut() {
+            if order.token_id != update.token_id || order.filled {
+                continue;
+            }
+            let remaining = order.size - order.filled_shares;
+            if remaining <= 0.0 {
+                continue;
+            }
+
+            let (crosses, available) = match order.side {
+                // Selling at `order.price`: fills when best_bid >= price,
+                // filled against bid ladder levels >= price.
+                Side::Sell => {
+                    let bb = update.best_bid.unwrap_or(0.0);
+                    if bb < order.price {
+                        (false, 0.0)
+                    } else {
+                        let avail: f64 = update
+                            .bids_ladder
+                            .iter()
+                            .filter(|(p, _)| *p >= order.price)
+                            .map(|(_, s)| *s)
+                            .sum();
+                        (true, avail)
+                    }
+                }
+                // Buying at `order.price`: fills when best_ask <= price,
+                // filled against ask ladder levels <= price.
+                Side::Buy => {
+                    let ba = update.best_ask.unwrap_or(f64::INFINITY);
+                    if ba > order.price {
+                        (false, 0.0)
+                    } else {
+                        let avail: f64 = update
+                            .asks_ladder
+                            .iter()
+                            .filter(|(p, _)| *p <= order.price)
+                            .map(|(_, s)| *s)
+                            .sum();
+                        (true, avail)
+                    }
+                }
+                _ => (false, 0.0),
+            };
+
+            if !crosses || available <= 0.0 {
+                continue;
+            }
+
+            let fill_size = available.min(remaining);
+            if fill_size <= 0.0 {
+                continue;
+            }
+
+            // Running weighted average over cumulative fill size. The maker
+            // nominally fills at its posted price (that's the whole point of
+            // resting), so treat the avg as the order price.
+            let prev_shares = order.filled_shares;
+            let new_shares = prev_shares + fill_size;
+            let new_avg = if new_shares > 0.0 {
+                (order.filled_avg_price * prev_shares + order.price * fill_size) / new_shares
+            } else {
+                order.price
+            };
+            order.filled_shares = new_shares;
+            order.filled_avg_price = new_avg;
+            order.filled_at_ns = Some(now);
+            if order.filled_shares >= order.size - 1e-9 {
+                order.filled = true;
+            }
+
+            // Adverse fill check. For a Sell resting at `order.price`, the
+            // order was posted because `fair_p_no_at_post + min_edge <=
+            // order.price` (we were getting >= edge over fair). It becomes
+            // adverse if the current fair has moved up such that
+            // `fair_p_no_at_fill + min_edge > order.price`, i.e.
+            // `fair_p_no_at_fill > order.price - min_edge`.
+            //
+            // The spec's formulation `fair_p_no_at_fill < order.price +
+            // order.min_edge_at_post` is the Buy-side check (selling-the-NO
+            // frame). We encode both directions symmetrically below.
+            let adverse = match order.side {
+                Side::Sell => {
+                    fair_p_no_at_fill > order.price - order.min_edge_at_post
+                }
+                Side::Buy => {
+                    fair_p_no_at_fill < order.price + order.min_edge_at_post
+                }
+                _ => false,
+            };
+            if adverse {
+                order.adverse_fill = true;
+            }
+
+            let edge_at_post = match order.side {
+                Side::Sell => order.price - order.fair_p_no_at_post,
+                Side::Buy => order.fair_p_no_at_post - order.price,
+                _ => 0.0,
+            };
+            let edge_at_fill = match order.side {
+                Side::Sell => order.price - fair_p_no_at_fill,
+                Side::Buy => fair_p_no_at_fill - order.price,
+                _ => 0.0,
+            };
+
+            self.append_no_edge_row(
+                now,
+                &order.token_id,
+                order.side,
+                order.price,
+                fill_size,
+                order.fair_p_no_at_post,
+                fair_p_no_at_fill,
+                edge_at_post,
+                edge_at_fill,
+                adverse,
+            );
+        }
+    }
+
+    #[cfg(test)]
+    async fn resting_order_count(&self) -> usize {
+        self.resting_orders.lock().await.len()
+    }
+
+    #[cfg(test)]
+    async fn resting_order_clone(&self, order_id: &str) -> Option<PaperRestingOrder> {
+        self.resting_orders.lock().await.get(order_id).cloned()
+    }
+
+    #[cfg(test)]
+    async fn bankroll(&self) -> f64 {
+        self.account.lock().await.bankroll_usdc
+    }
 }
 
 fn parse_resolution_date(date: &str, now_unix: i64) -> i64 {
@@ -593,5 +915,198 @@ mod tests {
         acct.bankroll_usdc = 1100.0;
         assert!((acct.net_pnl() - 100.0).abs() < 0.001);
         assert!((acct.roi_pct() - 10.0).abs() < 0.001);
+    }
+
+    // -------- Resting-maker tests (Phase 3 ticket #9) --------
+
+    use crate::types::BookUpdate;
+
+    fn test_paper_engine(bankroll: f64) -> PaperEngine {
+        // Unique temp log path per engine so parallel tests don't collide.
+        let mut path = std::env::temp_dir();
+        path.push(format!(
+            "paper-test-{}-{}.log",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        PaperEngine::new(
+            "https://clob.polymarket.com".to_string(),
+            bankroll,
+            5,
+            62.0,
+            0.05,
+            0.8,
+            path,
+        )
+    }
+
+    fn book_update(
+        token_id: U256,
+        best_bid: Option<f64>,
+        best_ask: Option<f64>,
+        bids: Vec<(f64, f64)>,
+        asks: Vec<(f64, f64)>,
+    ) -> BookUpdate {
+        BookUpdate {
+            token_id,
+            best_bid,
+            best_ask,
+            asks_ladder: asks,
+            bids_ladder: bids,
+            fetched_at_ns: 0,
+        }
+    }
+
+    #[tokio::test]
+    async fn paper_post_creates_resting_order_and_debits_bankroll() {
+        let engine = test_paper_engine(1000.0);
+        let id = engine
+            .paper_post_limit_order(U256::from(42), 0.90, 100.0, Side::Sell, 0.50, 0.05)
+            .await
+            .expect("post should succeed");
+        assert!(id.starts_with("paper-"));
+        assert_eq!(engine.resting_order_count().await, 1);
+        // Reserved: 100 * 0.90 = 90.0
+        assert!((engine.bankroll().await - 910.0).abs() < 1e-6);
+        let order = engine.resting_order_clone(&id).await.unwrap();
+        assert_eq!(order.token_id, U256::from(42));
+        assert_eq!(order.size, 100.0);
+        assert_eq!(order.price, 0.90);
+        assert!(!order.filled);
+        assert_eq!(order.filled_shares, 0.0);
+    }
+
+    #[tokio::test]
+    async fn paper_post_rejects_on_insufficient_bankroll() {
+        let engine = test_paper_engine(50.0);
+        let result = engine
+            .paper_post_limit_order(U256::from(1), 0.90, 100.0, Side::Sell, 0.50, 0.05)
+            .await;
+        assert!(result.is_err());
+        assert_eq!(engine.resting_order_count().await, 0);
+        // Bankroll untouched.
+        assert!((engine.bankroll().await - 50.0).abs() < 1e-6);
+    }
+
+    #[tokio::test]
+    async fn paper_cancel_refunds_bankroll() {
+        let engine = test_paper_engine(1000.0);
+        let id = engine
+            .paper_post_limit_order(U256::from(7), 0.80, 50.0, Side::Sell, 0.40, 0.05)
+            .await
+            .unwrap();
+        assert!((engine.bankroll().await - 960.0).abs() < 1e-6);
+        engine.paper_cancel_order(&id).await.unwrap();
+        assert_eq!(engine.resting_order_count().await, 0);
+        assert!((engine.bankroll().await - 1000.0).abs() < 1e-6);
+    }
+
+    #[tokio::test]
+    async fn paper_cancel_unknown_id_is_noop() {
+        let engine = test_paper_engine(1000.0);
+        let result = engine.paper_cancel_order("paper-nonexistent").await;
+        assert!(result.is_ok());
+        assert!((engine.bankroll().await - 1000.0).abs() < 1e-6);
+    }
+
+    #[tokio::test]
+    async fn paper_on_book_update_fills_sell_when_bid_crosses() {
+        let engine = test_paper_engine(1000.0);
+        let tok = U256::from(99);
+        let id = engine
+            .paper_post_limit_order(tok, 0.85, 50.0, Side::Sell, 0.50, 0.05)
+            .await
+            .unwrap();
+        // Bid at 0.86 with 60 shares crosses the 0.85 resting sell fully.
+        let upd = book_update(tok, Some(0.86), Some(0.87), vec![(0.86, 60.0)], vec![(0.87, 100.0)]);
+        // Current fair still 0.50 → not adverse.
+        engine.on_book_update(&upd, 0.50).await;
+        let order = engine.resting_order_clone(&id).await.unwrap();
+        assert!(order.filled);
+        assert!((order.filled_shares - 50.0).abs() < 1e-9);
+        assert!((order.filled_avg_price - 0.85).abs() < 1e-9);
+        assert!(order.filled_at_ns.is_some());
+        assert!(!order.adverse_fill);
+    }
+
+    #[tokio::test]
+    async fn paper_on_book_update_no_fill_when_bid_below() {
+        let engine = test_paper_engine(1000.0);
+        let tok = U256::from(11);
+        let id = engine
+            .paper_post_limit_order(tok, 0.90, 50.0, Side::Sell, 0.50, 0.05)
+            .await
+            .unwrap();
+        // Best bid 0.85 < 0.90 — no fill.
+        let upd = book_update(tok, Some(0.85), Some(0.91), vec![(0.85, 200.0)], vec![(0.91, 100.0)]);
+        engine.on_book_update(&upd, 0.50).await;
+        let order = engine.resting_order_clone(&id).await.unwrap();
+        assert!(!order.filled);
+        assert_eq!(order.filled_shares, 0.0);
+    }
+
+    #[tokio::test]
+    async fn paper_on_book_update_partial_fill() {
+        let engine = test_paper_engine(1000.0);
+        let tok = U256::from(21);
+        let id = engine
+            .paper_post_limit_order(tok, 0.80, 100.0, Side::Sell, 0.50, 0.05)
+            .await
+            .unwrap();
+        // Only 30 shares at >= 0.80 on the bid side.
+        let upd = book_update(
+            tok,
+            Some(0.81),
+            Some(0.82),
+            vec![(0.81, 30.0), (0.79, 500.0)],
+            vec![(0.82, 100.0)],
+        );
+        engine.on_book_update(&upd, 0.50).await;
+        let order = engine.resting_order_clone(&id).await.unwrap();
+        assert!(!order.filled);
+        assert!((order.filled_shares - 30.0).abs() < 1e-9);
+        // Avg price is still the posted price (maker gets its own price).
+        assert!((order.filled_avg_price - 0.80).abs() < 1e-9);
+        assert!(order.filled_at_ns.is_some());
+    }
+
+    #[tokio::test]
+    async fn paper_on_book_update_flags_adverse_fill() {
+        let engine = test_paper_engine(1000.0);
+        let tok = U256::from(33);
+        // Sell @0.80, edge=0.05, fair_at_post=0.70 (edge_at_post = 0.10, well above min).
+        let id = engine
+            .paper_post_limit_order(tok, 0.80, 50.0, Side::Sell, 0.70, 0.05)
+            .await
+            .unwrap();
+        // Bid at 0.80 crosses. But fair has moved to 0.78 — now price - fair
+        // = 0.02 < min_edge_at_post (0.05) → adverse.
+        let upd = book_update(tok, Some(0.80), Some(0.81), vec![(0.80, 100.0)], vec![(0.81, 100.0)]);
+        engine.on_book_update(&upd, 0.78).await;
+        let order = engine.resting_order_clone(&id).await.unwrap();
+        assert!(order.filled);
+        assert!(order.adverse_fill, "fill should be flagged adverse");
+    }
+
+    #[tokio::test]
+    async fn paper_on_book_update_ignores_unrelated_token() {
+        let engine = test_paper_engine(1000.0);
+        let my_tok = U256::from(1);
+        let other_tok = U256::from(2);
+        let id = engine
+            .paper_post_limit_order(my_tok, 0.85, 50.0, Side::Sell, 0.50, 0.05)
+            .await
+            .unwrap();
+        let upd = book_update(
+            other_tok,
+            Some(0.99),
+            Some(1.0),
+            vec![(0.99, 1000.0)],
+            vec![(1.0, 100.0)],
+        );
+        engine.on_book_update(&upd, 0.50).await;
+        let order = engine.resting_order_clone(&id).await.unwrap();
+        assert!(!order.filled);
+        assert_eq!(order.filled_shares, 0.0);
     }
 }
