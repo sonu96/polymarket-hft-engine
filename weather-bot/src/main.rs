@@ -19,15 +19,20 @@ mod weather_filter;
 
 use crate::alerts::send_alert;
 use crate::config::Config;
+use crate::edge_book::{EdgeCmd, EdgeCmdSender};
 use crate::executor::Executor;
 use crate::mint_executor::MintExecutor;
+use crate::no_edge::bootstrap::EdgeCmdEventSink;
 use crate::paper::PaperEngine;
+use crate::portfolio::PortfolioHandle;
 use crate::presigner::{OrderTemplate, Presigner};
 use crate::state::BotState;
 use crate::types::{
-    ClobMarketReady, MintReceipt, WeatherEvent,
+    ClobMarketReady, DiscoverySource, MintReceipt, WeatherEvent,
 };
+use crate::watchers::clob_user::ClobUserCreds;
 use alloy_primitives::Address;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::signal;
@@ -151,17 +156,96 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    // =========================================================================
+    // Phase 3 NO-edge farmer wiring (ticket #12)
+    //
+    // Everything below this block is inert unless `NO_EDGE_FARMER_ENABLED=1`.
+    // When enabled, we spawn the EdgeBook actor, the forecast / METAR /
+    // clob_book / clob_user watchers, the portfolio facade, and the one-shot
+    // bootstrap replay. The main `select!` arms for fills / signals / book
+    // updates / forecast / nowcast are added below; they short-circuit when
+    // the feature is off by holding `None` channel halves that never fire.
+    // =========================================================================
+    let phase3 = if config.no_edge_farmer_enabled {
+        match spawn_phase3(&config, executor.clone()) {
+            Ok(h) => Some(h),
+            Err(e) => {
+                tracing::error!("[PHASE3] spawn failed: {:#} — falling back to Phase 2 only", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    // Decompose the Phase 3 handles into Options so the `select!` below can
+    // pattern-match each receiver independently. `tokio::select!` does not
+    // fire an arm whose future is `Pending` forever, so guarded `if` arms
+    // are the standard pattern for optional receivers. We hold onto the
+    // Phase 3 "keep-alive" senders (`_user_sub_tx`, `_sub_cmd_tx`) via
+    // `_keepalive` so their downstream watchers don't see their command
+    // channels close for the whole lifetime of the event loop.
+    let mut edge_cmd_tx: Option<EdgeCmdSender> = None;
+    let mut book_update_rx = None;
+    let mut forecast_rx = None;
+    let mut nowcast_rx = None;
+    let mut fill_rx = None;
+    let mut order_state_rx = None;
+    let mut edge_signal_rx = None;
+    let mut portfolio_handle: Option<PortfolioHandle> = None;
+    let _keepalive: Option<(
+        mpsc::UnboundedSender<crate::watchers::clob_user::UserSubCmd>,
+        crate::types::SubCmdSender,
+    )> = phase3.map(|h| {
+        edge_cmd_tx = Some(h.edge_cmd_tx);
+        book_update_rx = Some(h.book_update_rx);
+        forecast_rx = Some(h.forecast_rx);
+        nowcast_rx = Some(h.nowcast_rx);
+        fill_rx = Some(h.fill_rx);
+        order_state_rx = Some(h.order_state_rx);
+        edge_signal_rx = Some(h.edge_signal_rx);
+        portfolio_handle = Some(h.portfolio_handle);
+        (h._user_sub_tx, h._sub_cmd_tx)
+    });
+
     tracing::info!("[MAIN] event loop ready — waiting for on-chain weather events");
 
     loop {
         tokio::select! {
             Some(event) = event_rx.recv() => {
                 tracing::info!(
-                    "[EVENT] {} buckets={} detected_at_ns={}",
+                    "[EVENT] {} buckets={} detected_at_ns={} source={:?}",
                     event.event_slug,
                     event.buckets.len(),
                     event.detected_at_ns,
+                    event.source,
                 );
+
+                // ==== PHASE 3 FAN-OUT ====
+                // Forward every event (including BootstrapReplay) to EdgeBook
+                // so the NO-edge farmer can price every bucket. Phase 2 mint
+                // below is gated to skip BootstrapReplay-tagged events — the
+                // mint window is already gone for anything old enough to
+                // appear in the Gamma snapshot.
+                if let Some(tx) = edge_cmd_tx.as_ref() {
+                    if tx.send(EdgeCmd::RegisterEvent(event.clone())).is_err() {
+                        tracing::warn!(
+                            "[MAIN] edge_book channel closed — dropping RegisterEvent for {}",
+                            event.event_slug
+                        );
+                    }
+                }
+
+                // BootstrapReplay events skip the Phase 2 mint-and-dump path
+                // entirely. Their mint window is already gone by the time
+                // they surface in the active-events snapshot.
+                if matches!(event.source, DiscoverySource::BootstrapReplay) {
+                    tracing::debug!(
+                        "[MAIN] skipping Phase 2 mint for BootstrapReplay event {}",
+                        event.event_slug
+                    );
+                    continue;
+                }
 
                 // ==== PAPER MODE SHORT-CIRCUIT ====
                 // When paper_mode is on, the PaperEngine owns the whole
@@ -250,6 +334,77 @@ async fn main() -> anyhow::Result<()> {
                 });
             }
 
+            // ======== Phase 3 arms (active only when no_edge_farmer_enabled) ========
+            Some(update) = async {
+                match book_update_rx.as_mut() { Some(rx) => rx.recv().await, None => None }
+            }, if book_update_rx.is_some() => {
+                if let Some(tx) = edge_cmd_tx.as_ref() {
+                    let _ = tx.send(EdgeCmd::BookTick(update));
+                }
+            }
+
+            Some(tick) = async {
+                match forecast_rx.as_mut() { Some(rx) => rx.recv().await, None => None }
+            }, if forecast_rx.is_some() => {
+                if let Some(tx) = edge_cmd_tx.as_ref() {
+                    let _ = tx.send(EdgeCmd::ForecastTick(tick));
+                }
+            }
+
+            Some(tick) = async {
+                match nowcast_rx.as_mut() { Some(rx) => rx.recv().await, None => None }
+            }, if nowcast_rx.is_some() => {
+                if let Some(tx) = edge_cmd_tx.as_ref() {
+                    let _ = tx.send(EdgeCmd::NowcastTick(tick));
+                }
+            }
+
+            Some(fill) = async {
+                match fill_rx.as_mut() { Some(rx) => rx.recv().await, None => None }
+            }, if fill_rx.is_some() => {
+                tracing::info!(
+                    "[fill] token={} order={} side={:?} size={} price={} status={}",
+                    fill.token_id, fill.order_id, fill.side, fill.size, fill.price, fill.status
+                );
+                if let Some(tx) = edge_cmd_tx.as_ref() {
+                    let _ = tx.send(EdgeCmd::Fill {
+                        token_id: fill.token_id,
+                        filled_shares: fill.size,
+                        filled_price: fill.price,
+                    });
+                }
+                if let Some(pf) = portfolio_handle.as_ref() {
+                    pf.record_fill(&fill.order_id, fill.size, fill.price, false);
+                }
+            }
+
+            Some(os) = async {
+                match order_state_rx.as_mut() { Some(rx) => rx.recv().await, None => None }
+            }, if order_state_rx.is_some() => {
+                tracing::debug!(
+                    "[order_state] token={} order={} kind={:?} status={} matched={}/{} @ {}",
+                    os.token_id, os.order_id, os.kind, os.status,
+                    os.size_matched, os.original_size, os.price
+                );
+            }
+
+            Some(signal) = async {
+                match edge_signal_rx.as_mut() { Some(rx) => rx.recv().await, None => None }
+            }, if edge_signal_rx.is_some() => {
+                // Ticket #7 (the quoter state machine) has not landed yet —
+                // for this ticket we just log `EdgeSignal`s so the full
+                // pipeline is observable end-to-end in paper runs. Follow-up
+                // tickets will pick up this receiver and dispatch to the
+                // OrderSink / quoter actor.
+                tracing::info!(
+                    "[edge_signal] token={} target=${:.3} size={:.0} reason={}",
+                    signal.token_id,
+                    signal.target_ask,
+                    signal.desired_size_shares,
+                    signal.reason
+                );
+            }
+
             _ = signal::ctrl_c() => {
                 tracing::info!("[SHUTDOWN] ctrl-c — saving state");
                 state.lock().await.save();
@@ -259,6 +414,167 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+/// All the channel/actor handles created by [`spawn_phase3`] and consumed by
+/// the main `select!` loop. Bundled into one struct so the spawn function
+/// stays readable and the destructuring in `main` is explicit about which
+/// halves we own.
+struct Phase3Handles {
+    edge_cmd_tx: EdgeCmdSender,
+    book_update_rx: mpsc::UnboundedReceiver<crate::types::BookUpdate>,
+    forecast_rx: mpsc::UnboundedReceiver<crate::types::ForecastTick>,
+    nowcast_rx: mpsc::UnboundedReceiver<crate::types::NowcastTick>,
+    fill_rx: mpsc::UnboundedReceiver<crate::watchers::clob_user::FillEvent>,
+    order_state_rx: mpsc::UnboundedReceiver<crate::watchers::clob_user::OrderStateEvent>,
+    edge_signal_rx: mpsc::UnboundedReceiver<crate::edge_book::EdgeSignal>,
+    portfolio_handle: PortfolioHandle,
+    // Senders we must keep alive so downstream watchers don't see their
+    // command channels close. Not used directly — the quoter (ticket #7)
+    // will take these by value when it lands.
+    _user_sub_tx: mpsc::UnboundedSender<crate::watchers::clob_user::UserSubCmd>,
+    _sub_cmd_tx: crate::types::SubCmdSender,
+}
+
+/// Spin up every Phase 3 NO-edge farmer task and return the channel halves
+/// the main loop needs to hold onto. Idempotent from `main`'s POV — called
+/// exactly once behind the `no_edge_farmer_enabled` flag.
+fn spawn_phase3(cfg: &Arc<Config>, executor: Arc<Executor>) -> anyhow::Result<Phase3Handles> {
+    // --- Channels ---
+    let (edge_cmd_tx, edge_cmd_rx) = mpsc::unbounded_channel::<EdgeCmd>();
+    let (sub_cmd_tx, sub_cmd_rx) = mpsc::unbounded_channel::<crate::types::SubCmd>();
+    let (book_update_tx, book_update_rx) = mpsc::unbounded_channel();
+    let (forecast_tx, forecast_rx) = mpsc::unbounded_channel();
+    let (nowcast_tx, nowcast_rx) = mpsc::unbounded_channel();
+    let (fill_tx, fill_rx) = mpsc::unbounded_channel();
+    let (order_state_tx, order_state_rx) = mpsc::unbounded_channel();
+    let (edge_signal_tx, edge_signal_rx) = mpsc::unbounded_channel();
+    let (user_sub_tx, user_sub_rx) =
+        mpsc::unbounded_channel::<crate::watchers::clob_user::UserSubCmd>();
+
+    // --- Portfolio actor ---
+    let (portfolio_handle, _portfolio_task) = crate::portfolio::spawn_portfolio(cfg.as_ref())
+        .map_err(|e| anyhow::anyhow!("portfolio spawn failed: {e:#}"))?;
+
+    // --- EdgeBook actor ---
+    let edge_cfg = Arc::clone(cfg);
+    let edge_sub_tx = sub_cmd_tx.clone();
+    tokio::spawn(async move {
+        if let Err(e) = crate::edge_book::run_edge_book(
+            edge_cfg.as_ref(),
+            edge_cmd_rx,
+            edge_sub_tx,
+            edge_signal_tx,
+        )
+        .await
+        {
+            tracing::error!("[edge_book] fatal: {}", e);
+        }
+    });
+
+    // --- Forecast watcher ---
+    let fcfg = Arc::clone(cfg);
+    tokio::spawn(async move {
+        if let Err(e) =
+            crate::watchers::forecast::run_forecast_watcher(fcfg.as_ref(), forecast_tx).await
+        {
+            tracing::error!("[forecast] fatal: {}", e);
+        }
+    });
+
+    // --- METAR watcher ---
+    let mcfg = Arc::clone(cfg);
+    tokio::spawn(async move {
+        if let Err(e) = crate::watchers::metar::run_metar_watcher(mcfg.as_ref(), nowcast_tx).await {
+            tracing::error!("[metar] fatal: {}", e);
+        }
+    });
+
+    // --- CLOB book watcher ---
+    let ccfg = Arc::clone(cfg);
+    tokio::spawn(async move {
+        if let Err(e) = crate::watchers::clob_book::run_clob_book_watcher(
+            ccfg.as_ref(),
+            sub_cmd_rx,
+            book_update_tx,
+        )
+        .await
+        {
+            tracing::error!("[clob_book] fatal: {}", e);
+        }
+    });
+
+    // --- CLOB user watcher (live only — paper / sim has no real orders) ---
+    if !cfg.paper_mode && !cfg.simulation {
+        let creds = ClobUserCreds {
+            api_key: std::env::var("POLY_API_KEY").unwrap_or_default(),
+            secret: std::env::var("POLY_API_SECRET").unwrap_or_default(),
+            passphrase: std::env::var("POLY_API_PASSPHRASE").unwrap_or_default(),
+        };
+        if !creds.api_key.is_empty() {
+            let ucfg = Arc::clone(cfg);
+            tokio::spawn(async move {
+                if let Err(e) = crate::watchers::clob_user::run_clob_user_watcher(
+                    ucfg.as_ref(),
+                    creds,
+                    Vec::new(),
+                    user_sub_rx,
+                    fill_tx,
+                    order_state_tx,
+                )
+                .await
+                {
+                    tracing::error!("[clob_user] fatal: {}", e);
+                }
+            });
+        } else {
+            tracing::warn!(
+                "[clob_user] no POLY_API_KEY in env — skipping user-channel subscription"
+            );
+        }
+    } else {
+        tracing::info!(
+            "[clob_user] skipping user-channel subscription (paper_mode or simulation)"
+        );
+    }
+
+    // --- Bootstrap replay (one-shot) ---
+    // Runs in its own task so it doesn't block `main()`. In this v1 wiring
+    // we pass an empty buffered-events vec — late-arriving live events will
+    // still be forwarded through the normal `event_rx` path. A follow-up
+    // ticket can add a side-buffer if we observe dropped events in practice.
+    let bootstrap_cfg = Arc::clone(cfg);
+    let bootstrap_executor = Arc::clone(&executor);
+    let bootstrap_edge_tx = edge_cmd_tx.clone();
+    tokio::spawn(async move {
+        let mut sink = EdgeCmdEventSink::new(bootstrap_edge_tx);
+        let known_orders: HashSet<String> = HashSet::new();
+        match crate::no_edge::bootstrap::run_bootstrap(
+            &bootstrap_cfg.gamma_api_url,
+            bootstrap_executor.as_ref(),
+            &mut sink,
+            Vec::new(),
+            &known_orders,
+        )
+        .await
+        {
+            Ok(report) => tracing::info!("[bootstrap] {:?}", report),
+            Err(e) => tracing::error!("[bootstrap] fatal: {:#}", e),
+        }
+    });
+
+    Ok(Phase3Handles {
+        edge_cmd_tx,
+        book_update_rx,
+        forecast_rx,
+        nowcast_rx,
+        fill_rx,
+        order_state_rx,
+        edge_signal_rx,
+        portfolio_handle,
+        _user_sub_tx: user_sub_tx,
+        _sub_cmd_tx: sub_cmd_tx,
+    })
 }
 
 /// Derive the EOA address from a hex private key. Returns `None` if the key
