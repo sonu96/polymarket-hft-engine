@@ -112,6 +112,14 @@ pub struct Config {
     /// Minimum seconds between successive EdgeBook signals for the same token.
     /// Rate-limits the quoter / executor downstream. Default 5s.
     pub no_edge_repost_cooldown_secs: u64,
+
+    /// Master switch for the Phase 3 NO-edge farmer pipeline. When `false`
+    /// (the default), `main.rs` runs the Phase 2 mint/dump loop exactly as
+    /// before and none of the Phase 3 actors (portfolio, edge_book,
+    /// forecast / metar / clob_book / clob_user watchers, bootstrap replay)
+    /// are spawned. Set `NO_EDGE_FARMER_ENABLED=1` in the environment to
+    /// opt in.
+    pub no_edge_farmer_enabled: bool,
 }
 
 impl Default for Config {
@@ -161,6 +169,8 @@ impl Default for Config {
             no_edge_min_edge_bps: 500,
             no_edge_repost_threshold_cents: 2,
             no_edge_repost_cooldown_secs: 5,
+
+            no_edge_farmer_enabled: false,
         }
     }
 }
@@ -333,6 +343,11 @@ impl Config {
             }
         }
 
+        // --- Phase 3 NO-edge farmer (master switch) ---
+        if let Ok(v) = std::env::var("NO_EDGE_FARMER_ENABLED") {
+            cfg.no_edge_farmer_enabled = v == "true" || v == "1";
+        }
+
         // Invariant: paper_mode forces simulation
         if cfg.paper_mode {
             cfg.simulation = true;
@@ -378,5 +393,23 @@ mod tests {
         let c = Config::default();
         assert!(c.dump_fraction > 0.0 && c.dump_fraction <= 1.0);
         assert!(c.min_dump_price > 0.0 && c.min_dump_price < 1.0);
+    }
+
+    #[test]
+    fn default_no_edge_farmer_disabled() {
+        // Phase 3 wiring is gated off by default so existing Phase 2 runs
+        // are unaffected by ticket #12 landing on the base branch.
+        assert!(!Config::default().no_edge_farmer_enabled);
+    }
+
+    #[test]
+    fn no_edge_farmer_can_be_constructed_enabled() {
+        let mut c = Config::default();
+        c.no_edge_farmer_enabled = true;
+        assert!(c.no_edge_farmer_enabled);
+        // And the rest of the defaults still hold — flipping the flag is
+        // not supposed to tamper with anything else.
+        assert!(c.simulation);
+        assert_eq!(c.mint_amount_usdc, 10.0);
     }
 }
