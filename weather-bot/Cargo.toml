@@ -20,6 +20,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rust_decimal = "1.36"
 rust_decimal_macros = "1.36"
 anyhow = "1.0"
+libm = "0.2"
 
 # Polymarket official Rust SDK — handles EIP-712 signing, auth, order building.
 # The `clob` module is unconditionally exported; only `ws`/`gamma`/`data`/`tracing` are gated features.

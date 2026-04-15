@@ -4836,6 +4836,7 @@ dependencies = [
  "hex",
  "hmac",
  "k256",
+ "libm",
  "once_cell",
  "polymarket-client-sdk",
  "regex",

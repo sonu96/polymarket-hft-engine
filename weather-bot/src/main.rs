@@ -5,6 +5,7 @@ mod executor;
 mod mint_executor;
 mod paper;
 mod presigner;
+mod pricer;
 mod scanner;
 mod state;
 mod types;
