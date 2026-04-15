@@ -59,7 +59,7 @@ The thesis is that Polymarket's weather orderbook has no informed market-makers,
 | `max_open_orders` | 60 | rate-limit / visibility cap |
 | `forecast_staleness_kill_secs` | 5400 | cancel all resting if forecast stale |
 | `forecast_poll_secs` | 1800 | 30-min Open-Meteo refresh cadence |
-| `gamma_poll_secs` | 300 | 5-min Gamma event-snapshot cadence |
+| ~~`gamma_poll_secs`~~ | — | **deleted** — discovery is WS-only after one-shot bootstrap (§3.4) |
 
 Sizing is flat-per-market (`min(max_notional_per_market, book_depth_at_target)`) in v1. Kelly sizing is a v2 optimization — the flat policy is within ~20% of optimal for the 5-15% edge band and is much easier to reason about for position caps.
 
@@ -85,8 +85,9 @@ Sizing is flat-per-market (`min(max_notional_per_market, book_depth_at_target)`)
 │ AviationWeather METAR  │──┤                                │
 │  5-min nowcast poll    │  │                                │
 ┌────────────────────────┐  │                                │
-│ Gamma /events?slug=    │──┤        ┌────────────────────┐  │
-│  watchlist poll (5m)   │  ├──────▶│ EventSnapshot      │──┤
+│ Polygon WSS onchain    │──┤        ┌────────────────────┐  │
+│  (Phase 2 watcher;     │  ├──────▶│ WeatherEvent       │──┤
+│   event.clone fork)    │  │        │                    │  │
 └────────────────────────┘  │        └────────────────────┘  │
 ┌────────────────────────┐  │                                │
 │ CLOB WS market channel │──┤        ┌────────────────────┐  │
@@ -119,10 +120,11 @@ Sizing is flat-per-market (`min(max_notional_per_market, book_depth_at_target)`)
 
 | File | Role |
 |---|---|
-| `watchers/forecast.rs` | 30-min Open-Meteo poll over the city list. Uses `/v1/forecast` for μ; optionally `/v1/ensemble` for σ. Emits `ForecastTick { city, date, mu, sigma, source, fetched_at_ns }`. |
-| `watchers/gamma_events.rs` | 5-min poll of `/events?slug=highest-temperature-in-{city}-on-{month}-{d}-{year}` for every watchlist entry. Parses each child market via `scanner::parse_temperature_slug` (already exists). Emits `EventSnapshot { event_slug, buckets: Vec<BucketInfo>, fetched_at_ns }`. Also owns the subscription-add side of the WS subscriber (§3.4). |
+| `watchers/forecast.rs` | 30-min Open-Meteo poll over the city list. Single `/v1/forecast?models=gfs_hrrr,ecmwf_ifs025` call plus `/v1/ensemble` for σ. Source cascade encoded in `pricer.rs` (see §3.5). Emits `ForecastTick { city, date, mu, sigma, source, fetched_at_ns }`. |
+| `watchers/metar.rs` | 5-min AviationWeather METAR poll per seeded ICAO. Computes `observed_tmax_so_far` + `remaining_variance_fraction` for nowcast σ collapse (see §3.5). Emits `NowcastTick { icao, date, observed_max, hour, remaining_var_frac }`. Per-ICAO staleness kill: reverts that station to forecast-only σ after 15 min. |
 | `watchers/clob_book.rs` | CLOB WS `market` channel client. Maintains an authoritative `HashSet<TokenId>` of subscribed tokens (replays it after reconnect — see §3.4). Emits `BookUpdate { token_id, best_bid, best_ask, asks_ladder, ts }`. Dedicated from Phase 2's `clob_ws.rs` to avoid coupling. |
 | `watchers/clob_user.rs` | CLOB WS `user` channel subscriber for own orders. Emits `FillEvent`, `CancelAck`, `OrderPlaced` events. |
+| `no_edge/bootstrap.rs` | One-shot startup replay: subscribes WS first (buffers `WeatherEvent`s), then fetches `/events?active=true&closed=false` filtered to weather slugs, tags each as `source: BootstrapReplay`, drains the WS buffer with dedup-by-condition_id. Also runs `Executor::list_open_orders(funder)` to cross-ref `NoEdgeState` for orphan cancellation. **Runs once, not periodically.** |
 | `climo.rs` | Static loader for `data/climo/*.json` files (copied from the Python engine). Exposes `daily_normal(icao, month, day) → (mu, sigma)` with Feb-29 fallback. Port of `wx_climo.py`. ~40 LoC. |
 | `pricer.rs` | Pure function: `fair_p_no(bucket, forecast) → f64` using erf-based Φ. Exposes `gaussian_bucket_prob(lo, hi, tail, mu, sigma)`. Port of `wx_scoring::gaussian_bucket_prob`. ~60 LoC. |
 | `edge_book.rs` | **Actor task** — single owner of `HashMap<TokenId, EdgeEntry>`. See §3.3. |
@@ -167,28 +169,89 @@ This is the **coalesce-via-dirty-bit** pattern: a 10Hz-per-token book stream acr
 
 ### 3.4 Subscription management
 
-`gamma_events.rs` discovers new NO token IDs. `clob_book.rs` owns the WebSocket. They are coupled via an mpsc `SubCmd::{Add(token), Remove(token)}`:
+**Discovery is WS-only after boot.** There is no Gamma polling task. Phase 2 already has `watchers::onchain::run_onchain_watcher` subscribed to Polygon WSS logs on the NegRiskAdapter contract, emitting `WeatherEvent { buckets: Vec<BucketInfo> }` the instant `MarketPrepared` fires (12-36h before settlement). `BucketInfo` already carries `token_id_yes`, `token_id_no`, `condition_id`, `bucket_label`, and `outcome_index` — every field the farmer needs. Phase 3 consumes the **same stream**.
+
+**Fan-out pattern: Option B (surgical, one line in main.rs).** The existing `event_rx: mpsc::UnboundedReceiver<WeatherEvent>` stays mpsc — no watcher signature change, no broadcast semantics drift. The existing `Some(event) = event_rx.recv()` arm in `main.rs` adds one `no_edge.event_tx.send(event.clone())` call **before** spawning the Phase 2 mint work. `WeatherEvent` is already `Clone` (Phase 2 already clones it for the paper path at `main.rs:166`). Zero-cost fork, zero blast radius, zero lagged-receiver risk.
 
 ```
-gamma_events ── SubCmd ──▶ clob_book (owns the WS write side)
-                           │
-                           ├─ updates local HashSet<TokenId>
-                           ├─ sends subscribe frame over existing WS
-                           └─ on reconnect: replays ENTIRE HashSet (authoritative)
+                              watchers::onchain (Polygon WSS)
+                                          │
+                                  WeatherEvent (mpsc)
+                                          │
+                                          ▼
+                                  main.rs event_rx arm
+                                          │
+                   ┌──────────────────────┴──────────────────────┐
+                   │ event_tx.send(event.clone())                │
+                   ▼                                             ▼
+       Phase 2 mint-dump (existing)                   Phase 3 no_edge.event_tx
+       presigner + mint_exec spawns                    EdgeBook::RegisterBucket
 ```
 
-**Critical reconnect behavior:** Polymarket's CLOB WS does not persist subscriptions across disconnects. `clob_book.rs` is the only task that knows the full subscribed set. The gamma poller will not retransmit; the reconnect path must replay from the local authoritative `HashSet`. Unit test this by killing the WS connection mid-run and asserting all prior tokens re-subscribe before the first post-reconnect frame is accepted.
+**Subscription-add fan-out.** EdgeBook, on receiving a `RegisterBucket` command from the fan-out, emits `SubCmd::Add(token_id_no)` through an mpsc to `clob_book.rs`, which owns the authoritative `HashSet<TokenId>` and the WS write side:
+
+```
+EdgeBook ── SubCmd::Add(no_token) ──▶ clob_book (owns WS write)
+                                      │
+                                      ├─ inserts into local HashSet<TokenId>
+                                      ├─ sends subscribe frame over existing WS
+                                      └─ on reconnect: replays ENTIRE HashSet
+```
+
+**Critical reconnect behavior:** Polymarket's CLOB WS does not persist subscriptions across disconnects. `clob_book.rs` is the only task that knows the full subscribed set. The upstream discovery path (onchain stream) will not retransmit old events; the reconnect path must replay from the local authoritative `HashSet`. Unit test this by killing the WS connection mid-run and asserting every prior token re-subscribes before the first post-reconnect frame is accepted.
+
+**Startup bootstrap (WS-first, then Gamma snapshot).** On binary startup the farmer needs to know every currently-open weather event, not just ones that appear after boot. The on-chain watcher only streams new events — it never replays historical `MarketPrepared` logs. Standard snapshot-and-tail pattern (`no_edge/bootstrap.rs`):
+
+1. **Subscribe to WS first** (spawn `watchers::onchain` as normal) and buffer any `WeatherEvent`s that arrive into a `Vec<WeatherEvent>` bootstrap queue.
+2. **Then fetch** `GET gamma-api.polymarket.com/events?active=true&closed=false&limit=500` (paginated until fewer than 500 rows), filter to slugs matching the weather template, construct `WeatherEvent`s tagged `source: DiscoverySource::BootstrapReplay`, feed them to EdgeBook.
+3. **Then drain** the bootstrap queue into EdgeBook with dedup-by-`condition_id` so events that appeared mid-bootstrap are not double-counted.
+4. **Then Phase 3 is WS-only for the rest of the process lifetime.**
+
+Phase 2 mint-and-dump **must skip** events tagged `BootstrapReplay` — the mint window is 12-36h pre-settlement and is long gone for any event old enough to appear in the active-events snapshot. Plumb the tag through `WeatherEvent.source: DiscoverySource` (new field, defaults to `OnChain` for the live stream). Also at bootstrap: run `Executor::list_open_orders(funder)` and cross-ref against `NoEdgeState::known_orders` — adopt recognized orders into EdgeBook, cancel orphans before the first new post (see §4.4).
 
 No `Arc<RwLock<HashSet>>` shared between tasks — the channel pattern matches every other watcher in this codebase.
 
-### 3.5 Forecast σ: primary vs. fallback
+### 3.5 Forecast source cascade + σ model
 
-- **Primary path:** Open-Meteo `/v1/ensemble?models=ecmwf_ifs04,gfs_seamless,icon_seamless&latitude=...&longitude=...&daily=temperature_2m_max&start_date=...&end_date=...`. Parse all members, compute cross-model sample standard deviation, multiply by `sigma_scale` (default 1.0). This is the live σ.
-- **Fallback path:** hard-coded table by `days_ahead` and unit. Used when ensemble fails 3 consecutive polls, or `/v1/ensemble` returns < 3 members.
-- **Calibration log:** every ForecastTick writes a row to `logs/forecast_sigma.parquet`:
-  `(city, date, forecast_age_hours, hardcoded_sigma, ensemble_sigma, actual_observed_tmax, residual)`.
-  After 14 days of live data, compute `σ_empirical = stdev(residual)` grouped by `days_ahead` and compare. If ensemble is systematically tight, bump `sigma_scale` (typical correction: 1.15-1.35 for 1-2 day forecasts).
-- **Rationale:** a 30% error in σ roughly doubles the tail-bucket probability error. A 5% edge floor under a wrong σ picks up fake signals and we lose real money. Run the calibration log before turning live on.
+**μ source cascade** (per `(city, days_ahead)`):
+
+| Region | Horizon | Primary μ | Rationale |
+|---|---|---|---|
+| US | ≤ 48h | HRRR (via Open-Meteo `models=gfs_hrrr`) | NOAA 3km CONUS high-res, hourly refresh, ~1.5°F RMSE at 24h |
+| US | > 48h | ECMWF (via Open-Meteo `models=ecmwf_ifs025`) | Global, ~2-3°F RMSE at 48-72h |
+| INTL | any | ECMWF (via Open-Meteo `models=ecmwf_ifs025`) | Consistent global model |
+| any | fallback | Open-Meteo `seamless` default | When source-specific endpoint returns no data |
+
+All three routes go through the **same** Open-Meteo `/v1/forecast?models=…` HTTP call, not raw NOMADS or ECMWF APIs. This bypasses GRIB2 parsing and gives us one HTTP client, one parser, one rate-limit surface. The source cascade is encoded as a lookup table in `pricer.rs`, not as branching logic scattered through the codebase.
+
+**σ source rule (decided):** σ is **always** from Open-Meteo `/v1/ensemble` cross-model spread, regardless of which source supplies μ. Rationale: per-source point forecasts don't carry σ, and per-(source, days_ahead) hard-coded tables add a maintenance surface we don't need. One σ provider, one calibration target, one knob (`sigma_scale`). Fallback to hard-coded σ table only when the ensemble endpoint fails 3 consecutive polls or returns <3 members.
+
+**METAR nowcast layer (new):** during the trading day, `watchers/metar.rs` polls AviationWeather METAR every 5 minutes for each seeded ICAO. Observed-TMAX-so-far is a physical lower bound on the final TMAX. The correct σ formulation at hour `h` is:
+
+```
+σ_remaining(h, icao, month) = σ_full_day × √remaining_variance_fraction(h, icao, month)
+
+P(TMAX_final ≤ x) = Φ((x − μ_remaining)/σ_remaining),   truncated below at observed_so_far
+```
+
+Where `remaining_variance_fraction(h, icao, month)` is precomputed from a 5-year METAR archive as the fraction of daily TMAX variance that lives in hours `[h..24)`. Early-morning: ≈1.0 (full σ). Late-afternoon after TMAX has likely passed: ≈0.1-0.3. Not "σ → 0" — the math needs the diurnal variance curve, not a hand-wave.
+
+Worked example: NYC at 18:00Z observed 78°F, forecast TMAX 85°F. If `remaining_variance_fraction(18, KLGA, apr) = 0.10`, then `σ_remaining = σ_full × √0.10 ≈ 0.32 × σ_full`. A late-afternoon 78°F observation collapses the 84-85°F YES bucket to ~5% (versus ~50% without nowcast), with a hard floor that `TMAX_final ≥ 78°F`.
+
+**Calibration log schema** (written to `logs/forecast_residuals.parquet`):
+```
+(city, days_ahead, source, forecast_age_hours, hardcoded_sigma, ensemble_sigma,
+ nowcast_sigma, actual_observed_tmax, residual, adverse_fill)
+```
+The grouping key is **`(city, days_ahead, source)`** — not just `days_ahead`. Miami 1-day RMSE differs from Seattle 1-day RMSE because of marine-layer variance, and HRRR vs ECMWF residuals differ at the source-switch boundary. Averaging across source switches produces a meaningless empirical σ.
+
+After 14 days of paper-mode data, compute `σ_empirical = stdev(residual)` grouped by `(city, days_ahead, source)` and compare to `ensemble_sigma`. If ensemble is systematically tight (it usually is at tails), bump `sigma_scale` per group. Typical correction for 1-2 day forecasts: 1.15-1.35.
+
+**Kill-switches (two independent):**
+- `forecast_staleness_kill_secs` (default 5400 = 90 min): if the forecast feed has been unresponsive longer than this, quoter cancels all resting orders and refuses new posts. **Global.**
+- `nowcast_staleness_kill_secs` (default 900 = 15 min = 3 missed METAR cycles): if METAR for a specific ICAO has been unresponsive, **revert that ICAO to forecast-only σ** (skip the nowcast layer). Not a global kill — only degrades one station's precision. Prevents overconfident σ on stale "observed-so-far" data.
+
+**Rationale:** a 30% error in σ roughly doubles the tail-bucket probability error. A 5% edge floor under a wrong σ picks up fake signals and we lose real money. Run the calibration log for 14 days before turning live on.
 
 ### 3.6 Quoter state machine
 
@@ -343,7 +406,7 @@ If the Python cron proves operationally painful (multi-host deployments, statefu
 `config.rs` gains a `no_edge_farmer` section. New `.env` keys (all optional, defaults in code):
 
 ```
-NO_EDGE_ENABLED=false                     # kill-switch
+NO_EDGE_ENABLED=false                       # kill-switch
 NO_EDGE_MIN_EDGE_BPS=500
 NO_EDGE_REPOST_THRESHOLD_CENTS=2
 NO_EDGE_REPOST_COOLDOWN_SECS=5
@@ -352,28 +415,43 @@ NO_EDGE_MAX_NOTIONAL_PER_EVENT_USDC=500
 NO_EDGE_MAX_TOTAL_DEPLOYED_USDC=2000
 NO_EDGE_MAX_OPEN_ORDERS=60
 NO_EDGE_FORECAST_POLL_SECS=1800
-NO_EDGE_GAMMA_POLL_SECS=300
-NO_EDGE_FORECAST_STALENESS_KILL_SECS=5400
-NO_EDGE_SIGMA_SCALE=1.0                   # calibration multiplier
-NO_EDGE_SIGMA_SOURCE=ensemble             # "ensemble" | "hardcoded"
+NO_EDGE_METAR_POLL_SECS=300
+NO_EDGE_FORECAST_STALENESS_KILL_SECS=5400   # 90min — global
+NO_EDGE_NOWCAST_STALENESS_KILL_SECS=900     # 15min — per-ICAO, reverts to forecast σ
+NO_EDGE_SIGMA_SCALE=1.0                     # calibration multiplier
+NO_EDGE_SIGMA_SOURCE=ensemble               # always — "hardcoded" only via fallback path
 NO_EDGE_CITIES=nyc,atlanta,seattle,dallas,miami,chicago,denver,san-francisco,los-angeles,houston,lucknow
 NO_EDGE_LOOKAHEAD_DAYS=2
 NO_EDGE_PAPER_LOG_PATH=paper_no_edge.csv
 ```
 
+Note: `NO_EDGE_GAMMA_POLL_SECS` from the v1 design is **deleted**. There is no periodic Gamma poll — only a one-shot startup snapshot (§3.4).
+
 ## 7. Risks & open questions
 
 ### 7.1 Strategy decay
-The strategy relies on the **absence** of other market-makers. If another bot starts posting NO at `p_no − 4.99%`, our edge compresses to ~0 in days. Plan:
-- Budget a 2-4 week honeymoon period. Revisit ROI weekly.
-- If ROI stays > 10%/cycle through week 4, consider adding YES-side asks (symmetric edge where forecast says YES > market) to double effective capacity.
-- If ROI drops below 3%, switch to less-liquid secondary cities (London, Paris, Tokyo — need climo + station map bootstrap per §3.2 `climo.rs`).
+The strategy relies on the **absence of a second market-maker**. A taker bot (like the public @alterego_eth tutorial) does NOT compete with us — a taker crossing the book *fills* us and is a feature, not a threat. The actual decay trigger is another resting-maker quoting NO one tick tighter than ours.
+
+**Reframed weekly review signals** (leading, not lagging):
+- **Primary leading indicator:** scan CLOB depth each morning and count NO-side resting asks that (a) sit one tick above our target price and (b) post sizes ≥ $30 notional and (c) persist for ≥5 minutes across multiple buckets. One observation = benign (could be a retail mistake). Three in a day across different cities = a second maker is live. Kill-switch at that point and re-price to undercut or step aside.
+- **Secondary leading indicator:** median top-of-book NO ask for the 10 highest-edge buckets over the past 24h. Rising median = the book is absorbing a new supply of NO liquidity = a maker is operating upstream.
+- **Lagging indicator (use only for confirmation):** ROI per cycle vs 7-day rolling median. If ROI drops ≥25% week-over-week *and* the leading indicators fire, that's a confirmed regime shift.
+
+**Decay budget: 1-2 weeks** (down from the original 2-4 — the public tutorial shortens the window for copycats to spin up). Weekly review, not monthly.
+
+**Responses (in order of escalation):**
+1. Already mid-week: tighten `min_edge_bps` from 500 → 700 to stop fighting over marginal buckets.
+2. If ROI stays > 10%/cycle through week 4: **add YES-side asks** (symmetric edge where forecast says YES > market) to double effective capacity. Same codepath with `side: Buy` swapped.
+3. If ROI drops below 3% and leading indicators say a maker is live: switch to less-liquid secondary cities (London, Paris, Tokyo — need climo + station map bootstrap per §3.2 `climo.rs`). These have thinner books and fewer competitors.
+4. If ROI stays below 1% for 5 consecutive days across all cities: shut the farmer off, revert to Phase 2 mint-dump only, and revisit the thesis.
 
 ### 7.2 Forecast σ error
 A 30% σ error roughly doubles the tail-bucket probability error, which at the 5% edge floor means most signals become noise. Mitigations listed in §3.5:
-- Ensemble σ as primary, hard-coded as fallback
-- 14-day calibration log before trusting the multiplier
-- Wide `sigma_scale` config knob for manual correction
+- **Always-ensemble-σ** decision means one provider, one calibration target, one `sigma_scale` knob
+- Hard-coded σ table only as fallback when ensemble returns <3 members
+- METAR nowcast layer shrinks σ live during the trading day with variance-fraction math (not hand-waved σ→0)
+- 14-day calibration log grouped by `(city, days_ahead, source)` before trusting any multiplier
+- Two independent staleness kill-switches: `forecast_staleness_kill_secs` (global) and `nowcast_staleness_kill_secs` (per-ICAO, demotes to forecast-only σ)
 
 ### 7.3 Thin depth vs. competing fills
 $5k fillable at the 5% floor is **half** what it looks like — someone else's market buy can sweep the same ladder we're targeting. Per-cycle realized fill rate is probably 30-50% of top-of-ladder. Paper mode must measure this before turning live on.
@@ -400,26 +478,29 @@ Ticket-sized breakdown. Each item is independently PR-able.
 | 1 | Extend `Executor` with `post_limit_order → OrderId`, `cancel_order`, `list_open_orders` | — | ~120 | **P0 blocker** |
 | 2 | Port `climo.rs` + embed `wx_resolution_map.yaml` as a static table | — | ~150 | P0 |
 | 3 | Port `pricer.rs` (`gaussian_bucket_prob`, `fair_p_no` free functions + unit tests mirroring the Python tests) | #2 | ~120 | P0 |
-| 4 | `watchers/forecast.rs` — Open-Meteo `/v1/forecast` poll, hard-coded σ fallback path, log-only output | #3 | ~200 | P0 |
-| 5 | `watchers/gamma_events.rs` — `/events?slug=…` poll, slug parse reuse, subscription emit channel | — | ~250 | P0 |
+| 4 | `watchers/forecast.rs` — Open-Meteo `/v1/forecast?models=gfs_hrrr,ecmwf_ifs025` cascade, ensemble σ primary, hard-coded σ fallback. **Acceptance: unit test that `gfs_hrrr` returns daily TMAX for NYC (not just hourlies we have to max)** | #3 | ~250 | P0 |
+| 4b | `watchers/metar.rs` — 5-min AviationWeather METAR poll, `remaining_variance_fraction(icao,month,hour)` lookup table, `NowcastTick` emit, per-ICAO staleness kill | #2 | ~220 | P0 |
+| 4c | Precompute `remaining_variance_fraction` lookup from 5-year METAR archive — one-shot data pipeline → ship table as `data/metar_variance.json` | #4b | ~150 Py | P0 |
+| ~~5~~ | ~~`watchers/gamma_events.rs`~~ | **DELETED** — WeatherEvent fan-out from existing `watchers::onchain` makes this unnecessary (§3.4) | — | — |
 | 6 | `watchers/clob_book.rs` — WS subscribe/unsubscribe + reconnect replay, `BookUpdate` emit | — | ~350 | P0 |
-| 7 | `edge_book.rs` actor + `EdgeCmd` enum + dirty-bit ticker + `EdgeSignal` emit | #3 #4 #5 #6 | ~400 | P0 |
-| 8 | `quoter.rs` actor + state machine + `OrderSink` trait (stub impl) | #1 #7 | ~350 | P0 |
-| 9 | `portfolio.rs` + `NoEdgeState` + facade mpsc + `no_edge_state.json` serde w/ schema_version | — | ~250 | P0 |
-| 10 | Paper-mode extension: `PaperRestingOrder`, book-cross fill sim, adverse-fill tag, `paper_no_edge.csv` | #8 | ~250 | P0 |
-| 11 | `main.rs` wiring: gated `no_edge::spawn_all`, new `tokio::select!` arms, ctrl-c drain | #8 #9 #10 | ~100 | P0 |
-| 12 | `watchers/clob_user.rs` — user-channel fill stream, wire into EdgeBook + portfolio | #6 #9 | ~250 | P0 |
-| 13 | Startup recovery path: `list_open_orders` → cross-ref `no_edge_state.json` → adopt/cancel/reconcile | #1 #9 | ~200 | P0 |
-| 14 | 14-day paper-mode bake + calibration-log analysis (`sigma_scale` fitting) | #11 | N/A | P0 |
-| 15 | Open-Meteo ensemble σ primary path + calibration log schema | #4 | ~200 | P1 |
-| 16 | Python settlement cron + flock + atomic rename | #9 | ~150 Py | P1 |
-| 17 | Telegram alert hookups: new fill, forecast-staleness kill, orphan cancel on restart | #11 #12 | ~80 | P1 |
-| 18 | Metrics: per-tick dirty-token count, WS reconnect counter, cancel-vs-fill race counter | #11 | ~120 | P1 |
-| 19 | Regression test: self-cross detection against presigner cache | #8 | ~80 | P1 |
-| 20 | Operational runbook: how to read the paper CSV, kill-switch procedure, `sigma_scale` tuning | #14 | doc | P2 |
+| 7 | `edge_book.rs` actor + `EdgeCmd` enum + dirty-bit ticker + `EdgeSignal` emit. Handles `RegisterBucket` cmd from fan-out (§3.4), emits `SubCmd::Add` to `clob_book.rs` | #3 #4 #4b #6 | ~450 | P0 |
+| 8 | `quoter.rs` actor + state machine + `OrderSink` trait + Cancelling→Filled reconciliation | #1 #7 | ~350 | P0 |
+| 9 | `portfolio.rs` + `NoEdgeState` + facade mpsc + `no_edge_state.json` serde w/ `schema_version=1` + `deny_unknown_fields` | — | ~250 | P0 |
+| 10 | Paper-mode extension: `PaperRestingOrder`, book-cross fill sim, adverse-fill tag, `paper_no_edge.csv`, `OrderSink` impl for PaperEngine | #8 | ~250 | P0 |
+| 11 | `no_edge/bootstrap.rs` — WS-first + Gamma snapshot + dedup + `DiscoverySource::BootstrapReplay` tag + orphan-order cancel via `list_open_orders` | #1 #6 #9 | ~250 | P0 |
+| 12 | `main.rs` wiring: gated `no_edge::spawn_all`, event fan-out one-liner in existing `event_rx` arm, new `tokio::select!` arms, ctrl-c drain. **Phase 2 skip path for `BootstrapReplay`-tagged events** | #8 #9 #10 #11 | ~120 | P0 |
+| 13 | `watchers/clob_user.rs` — user-channel fill stream, wire into EdgeBook + portfolio | #6 #9 | ~250 | P0 |
+| 14 | **Self-cross regression test** — fails if presigner cache contains `Side::Sell` on any `token_id_no` managed by the farmer. **Promoted P1 → P0** per advisor: with no Gamma poll, the on-chain stream is the only coordination point between Phase 2 and Phase 3 | #8 | ~100 | P0 |
+| 15 | Calibration log writer: `logs/forecast_residuals.parquet` with `(city, days_ahead, source)` grouping, reconciled against nightly settlement | #9 | ~180 | P0 |
+| 16 | 14-day paper-mode bake + calibration analysis (`sigma_scale` fitting per source/city) | #12 #15 | N/A | P0 |
+| 17 | Historical backtest: replay 30-90 days of Gamma closed weather events + price history through the farmer in offline mode. Deliverable: `docs/PHASE3_BACKTEST_REPORT.md` with per-city / per-bucket edge-capture numbers | #8 | ~300 Py | P0 |
+| 18 | Python settlement cron + flock + atomic rename + versioned ledger | #9 | ~150 Py | P1 |
+| 19 | Telegram alert hookups: new fill, forecast-staleness kill, orphan cancel, second-maker detection | #12 #13 | ~120 | P1 |
+| 20 | Metrics: per-tick dirty-token count, WS reconnect counter, cancel-vs-fill race counter, second-maker leading indicator (§7.1) | #12 | ~150 | P1 |
+| 21 | Operational runbook: how to read the paper CSV, kill-switch procedure, `sigma_scale` tuning, leading-indicator review | #16 | doc | P2 |
 
-**P0 subtotal:** ~3,000 LoC Rust + paper-mode. 1-2 engineer-weeks to working paper mode.
-**Live bring-up:** only after #14 and at least 7 consecutive days of paper-mode P&L within 20% of model prediction.
+**P0 subtotal:** ~3,000 LoC Rust + ~450 LoC Python (variance precompute + backtest) + paper-mode. 1-2 engineer-weeks to working paper mode.
+**Live bring-up:** gated on all of #14 (self-cross test), #16 (7 consecutive days of paper-mode P&L within 20% of model), and #17 (historical backtest confirming edge capture ≥ 50% of raw model EV).
 
 ---
 
