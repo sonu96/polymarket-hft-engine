@@ -4,6 +4,7 @@
 //! reconnects with backoff; it never falls back to a timer loop.
 
 pub mod clob_book;
+pub mod clob_user;
 pub mod clob_ws;
 pub mod forecast;
 pub mod mempool;
