@@ -10,6 +10,7 @@ mod order_sink;
 mod paper;
 mod portfolio;
 mod presigner;
+mod quoter;
 mod pricer;
 mod scanner;
 mod state;
