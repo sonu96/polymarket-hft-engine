@@ -154,4 +154,185 @@ impl Presigner {
         let guard = self.cache.lock().await;
         guard.values().map(|v| v.len()).sum()
     }
+
+    /// Test-only, non-draining snapshot of the cache. Unlike
+    /// [`Self::flush_condition`] (which removes entries) this clones the
+    /// inner map so callers can enumerate every cached order without
+    /// disturbing the hot-path state. Used by the Phase 3 self-cross
+    /// regression test — see `tests::self_cross_presigner_cache_never_touches_no_tokens`.
+    #[cfg(test)]
+    pub(crate) async fn cached_orders(&self) -> Vec<(String, Vec<SignedOrder>)> {
+        let guard = self.cache.lock().await;
+        guard.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Phase 3 ticket #13 — self-cross regression.
+    //!
+    //! Phase 2 mint-and-dump presigns **Sell** orders on `token_id_yes`
+    //! (see `presign_for_event` above — it reads `bucket.token_id_yes` only).
+    //! Phase 3 NO-edge farmer rests **Sell** orders on `token_id_no`. Today
+    //! those two pipelines operate on disjoint token_id sets and cannot
+    //! cross each other's books.
+    //!
+    //! If someone ever extends Phase 2 to ALSO dump NO legs (e.g. for a
+    //! basket merge+redeem path), the two pipelines would both be selling
+    //! on the same `token_id_no` and would self-cross — silently losing
+    //! money while looking like normal activity. With no Gamma poll, the
+    //! on-chain stream is the only coordination point between Phase 2 and
+    //! Phase 3, so this check is load-bearing.
+    //!
+    //! Intended failure mode: if `presign_for_event` is edited to also loop
+    //! over `bucket.token_id_no`, this test FAILS and forces a design
+    //! conversation before the change ships.
+
+    use super::*;
+    use crate::config::Config;
+    use crate::types::{DiscoverySource, EventKind, WeatherEvent};
+    use alloy_primitives::{Address, B256};
+    use std::collections::HashSet;
+
+    /// Three-bucket NegRisk fixture with distinct YES/NO token ids per bucket.
+    /// The integer values are intentionally tiny and non-overlapping so that
+    /// the {YES} and {NO} sets are trivially distinguishable.
+    fn three_bucket_event() -> WeatherEvent {
+        WeatherEvent {
+            event_slug: "highest-temperature-in-lucknow-on-april-15-2026".to_string(),
+            city: "lucknow".to_string(),
+            resolution_date: "2026-04-15".to_string(),
+            kind: EventKind::NegRisk,
+            neg_risk_market_id: Some(B256::repeat_byte(0xaa)),
+            oracle: Address::ZERO,
+            buckets: vec![
+                BucketInfo {
+                    condition_id: B256::repeat_byte(0x11),
+                    question_id: B256::repeat_byte(0x21),
+                    outcome_index: 0,
+                    bucket_label: "40°C or below".to_string(),
+                    token_id_yes: U256::from(100u64),
+                    token_id_no: U256::from(101u64),
+                },
+                BucketInfo {
+                    condition_id: B256::repeat_byte(0x12),
+                    question_id: B256::repeat_byte(0x22),
+                    outcome_index: 1,
+                    bucket_label: "41°C".to_string(),
+                    token_id_yes: U256::from(200u64),
+                    token_id_no: U256::from(201u64),
+                },
+                BucketInfo {
+                    condition_id: B256::repeat_byte(0x13),
+                    question_id: B256::repeat_byte(0x23),
+                    outcome_index: 2,
+                    bucket_label: "42°C or higher".to_string(),
+                    token_id_yes: U256::from(300u64),
+                    token_id_no: U256::from(301u64),
+                },
+            ],
+            detected_at_ns: 0,
+            source: DiscoverySource::OnChain,
+        }
+    }
+
+    fn sim_config() -> Config {
+        Config {
+            simulation: true,
+            ..Config::default()
+        }
+    }
+
+    fn permissive_template() -> OrderTemplate {
+        // `estimate_bucket_price` currently returns 0.10 for every bucket,
+        // so min_dump_price=0.01 keeps every bucket in the cache. We want
+        // the full set because the regression question is about which
+        // token_id gets signed, not which buckets survive the price gate.
+        OrderTemplate {
+            min_dump_price: 0.01,
+            dump_fraction: 0.5,
+            mint_amount_usdc: 10.0,
+        }
+    }
+
+    /// Core regression: after `presign_for_event`, every cached order must
+    /// reference a YES token and must NOT reference any NO token. If someone
+    /// extends Phase 2 to dump NO legs, this test fails loudly with a
+    /// message naming the offending token.
+    #[tokio::test]
+    async fn self_cross_presigner_cache_never_touches_no_tokens() {
+        let executor = Arc::new(Executor::new(sim_config()).await.unwrap());
+        let presigner = Presigner::new(executor, permissive_template());
+        let event = three_bucket_event();
+
+        let inserted = presigner.presign_for_event(&event).await;
+        assert_eq!(
+            inserted,
+            event.buckets.len(),
+            "expected one presigned order per bucket (all buckets should clear \
+             min_dump_price=0.01 given the 0.10 placeholder fair-price)"
+        );
+
+        // Build the expected token-id universes from the fixture.
+        let yes_tokens: HashSet<U256> =
+            event.buckets.iter().map(|b| b.token_id_yes).collect();
+        let no_tokens: HashSet<U256> =
+            event.buckets.iter().map(|b| b.token_id_no).collect();
+
+        // Snapshot the presigner cache without draining it.
+        let cache = presigner.cached_orders().await;
+        let cached_token_ids: Vec<U256> = cache
+            .iter()
+            .flat_map(|(_cid, orders)| orders.iter().map(|o| o.token_id))
+            .collect();
+
+        assert_eq!(
+            cached_token_ids.len(),
+            event.buckets.len(),
+            "cache snapshot should contain exactly one order per bucket"
+        );
+
+        // (1) Every cached order is on a YES token.
+        for tid in &cached_token_ids {
+            assert!(
+                yes_tokens.contains(tid),
+                "cached SignedOrder references token_id {tid} which is NOT \
+                 in the YES-token universe {yes_tokens:?}"
+            );
+        }
+
+        // (2) The intersection with the NO universe is empty. This is the
+        //     load-bearing invariant — if it ever fails, Phase 2 has been
+        //     extended to dump NO legs and will self-cross the Phase 3
+        //     NO-edge farmer's resting orders.
+        for tid in &cached_token_ids {
+            assert!(
+                !no_tokens.contains(tid),
+                "SELF-CROSS: presigner cached a SELL order on {tid}, which \
+                 is a NO-side token managed by the Phase 3 farmer. This \
+                 means Phase 2 has been extended to dump NO legs and the \
+                 two pipelines will cross each other's books."
+            );
+        }
+    }
+
+    /// Negative control: the YES-universe and NO-universe in the fixture
+    /// must themselves be disjoint, otherwise the self-cross check above
+    /// is vacuous. Guards against someone "fixing" the fixture by making
+    /// YES == NO and accidentally silencing the real test.
+    #[tokio::test]
+    async fn self_cross_fixture_yes_and_no_universes_are_disjoint() {
+        let event = three_bucket_event();
+        let yes_tokens: HashSet<U256> =
+            event.buckets.iter().map(|b| b.token_id_yes).collect();
+        let no_tokens: HashSet<U256> =
+            event.buckets.iter().map(|b| b.token_id_no).collect();
+        let overlap: HashSet<_> = yes_tokens.intersection(&no_tokens).collect();
+        assert!(
+            overlap.is_empty(),
+            "fixture invariant broken: YES and NO token universes overlap \
+             at {overlap:?} — the self-cross regression test would be \
+             vacuously true"
+        );
+    }
 }
