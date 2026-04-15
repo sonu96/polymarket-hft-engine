@@ -8,3 +8,15 @@ target/
 
 # Logs
 *.log
+
+# Runtime state (populated at runtime, not source)
+weather-bot/bot_state.json
+weather-bot/no_edge_state.json
+logs/
+
+# macOS / editor junk
+.DS_Store
+
+# Claude Code worktrees (ephemeral; not source)
+.claude/worktrees/
+.claude/
