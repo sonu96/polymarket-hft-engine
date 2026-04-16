@@ -27,6 +27,7 @@ use crate::no_edge::bootstrap::EdgeCmdEventSink;
 use crate::paper::PaperEngine;
 use crate::portfolio::PortfolioHandle;
 use crate::presigner::{OrderTemplate, Presigner};
+use crate::quoter::QuoterCmdSender;
 use crate::state::BotState;
 use crate::types::{
     ClobMarketReady, DiscoverySource, MintReceipt, WeatherEvent,
@@ -168,7 +169,7 @@ async fn main() -> anyhow::Result<()> {
     // the feature is off by holding `None` channel halves that never fire.
     // =========================================================================
     let phase3 = if config.no_edge_farmer_enabled {
-        match spawn_phase3(&config, executor.clone()) {
+        match spawn_phase3(&config, executor.clone(), paper_engine.clone()) {
             Ok(h) => Some(h),
             Err(e) => {
                 tracing::error!("[PHASE3] spawn failed: {:#} — falling back to Phase 2 only", e);
@@ -194,6 +195,7 @@ async fn main() -> anyhow::Result<()> {
     let mut order_state_rx = None;
     let mut edge_signal_rx = None;
     let mut portfolio_handle: Option<PortfolioHandle> = None;
+    let mut quoter_cmd_tx: Option<QuoterCmdSender> = None;
     let _keepalive: Option<(
         mpsc::UnboundedSender<crate::watchers::clob_user::UserSubCmd>,
         crate::types::SubCmdSender,
@@ -206,6 +208,7 @@ async fn main() -> anyhow::Result<()> {
         order_state_rx = Some(h.order_state_rx);
         edge_signal_rx = Some(h.edge_signal_rx);
         portfolio_handle = Some(h.portfolio_handle);
+        quoter_cmd_tx = h.quoter_cmd_tx;
         (h._user_sub_tx, h._sub_cmd_tx)
     });
 
@@ -377,6 +380,9 @@ async fn main() -> anyhow::Result<()> {
                 if let Some(pf) = portfolio_handle.as_ref() {
                     pf.record_fill(&fill.order_id, fill.size, fill.price, false);
                 }
+                if let Some(ref qtx) = quoter_cmd_tx {
+                    let _ = qtx.send(quoter::QuoterCmd::Fill(fill));
+                }
             }
 
             Some(os) = async {
@@ -387,23 +393,38 @@ async fn main() -> anyhow::Result<()> {
                     os.token_id, os.order_id, os.kind, os.status,
                     os.size_matched, os.original_size, os.price
                 );
+                // Fan out cancel acknowledgements into the quoter so it can
+                // transition `Cancelling` → `Idle` (or consume a `pending_next`
+                // replacement). Placements / updates are just observational
+                // for now — the quoter learns about placements via the
+                // post_limit_order return value at signal-dispatch time.
+                if matches!(
+                    os.kind,
+                    crate::watchers::clob_user::OrderStateKind::Cancellation
+                ) && os.status == "CANCELED"
+                {
+                    if let Some(ref qtx) = quoter_cmd_tx {
+                        let _ = qtx.send(quoter::QuoterCmd::CancelAck {
+                            token_id: os.token_id,
+                            order_id: os.order_id,
+                        });
+                    }
+                }
             }
 
             Some(signal) = async {
                 match edge_signal_rx.as_mut() { Some(rx) => rx.recv().await, None => None }
             }, if edge_signal_rx.is_some() => {
-                // Ticket #7 (the quoter state machine) has not landed yet —
-                // for this ticket we just log `EdgeSignal`s so the full
-                // pipeline is observable end-to-end in paper runs. Follow-up
-                // tickets will pick up this receiver and dispatch to the
-                // OrderSink / quoter actor.
-                tracing::info!(
-                    "[edge_signal] token={} target=${:.3} size={:.0} reason={}",
-                    signal.token_id,
-                    signal.target_ask,
-                    signal.desired_size_shares,
-                    signal.reason
-                );
+                if let Some(ref qtx) = quoter_cmd_tx {
+                    let _ = qtx.send(quoter::QuoterCmd::Signal(signal));
+                } else {
+                    // No quoter wired (pure simulation mode) — log and drop.
+                    tracing::debug!(
+                        "[edge_signal] (no quoter) token={} target=${:.3}",
+                        signal.token_id,
+                        signal.target_ask,
+                    );
+                }
             }
 
             _ = signal::ctrl_c() => {
@@ -430,9 +451,13 @@ struct Phase3Handles {
     order_state_rx: mpsc::UnboundedReceiver<crate::watchers::clob_user::OrderStateEvent>,
     edge_signal_rx: mpsc::UnboundedReceiver<crate::edge_book::EdgeSignal>,
     portfolio_handle: PortfolioHandle,
+    /// Sender half of the quoter command channel. `None` when we're running
+    /// in pure simulation mode (no paper engine, no live executor wired as a
+    /// sink) — the main select loop falls back to a debug-log drop for
+    /// EdgeSignals in that case.
+    quoter_cmd_tx: Option<QuoterCmdSender>,
     // Senders we must keep alive so downstream watchers don't see their
-    // command channels close. Not used directly — the quoter (ticket #7)
-    // will take these by value when it lands.
+    // command channels close.
     _user_sub_tx: mpsc::UnboundedSender<crate::watchers::clob_user::UserSubCmd>,
     _sub_cmd_tx: crate::types::SubCmdSender,
 }
@@ -440,7 +465,11 @@ struct Phase3Handles {
 /// Spin up every Phase 3 NO-edge farmer task and return the channel halves
 /// the main loop needs to hold onto. Idempotent from `main`'s POV — called
 /// exactly once behind the `no_edge_farmer_enabled` flag.
-fn spawn_phase3(cfg: &Arc<Config>, executor: Arc<Executor>) -> anyhow::Result<Phase3Handles> {
+fn spawn_phase3(
+    cfg: &Arc<Config>,
+    executor: Arc<Executor>,
+    paper_engine: Option<Arc<PaperEngine>>,
+) -> anyhow::Result<Phase3Handles> {
     // --- Channels ---
     let (edge_cmd_tx, edge_cmd_rx) = mpsc::unbounded_channel::<EdgeCmd>();
     let (sub_cmd_tx, sub_cmd_rx) = mpsc::unbounded_channel::<crate::types::SubCmd>();
@@ -452,6 +481,7 @@ fn spawn_phase3(cfg: &Arc<Config>, executor: Arc<Executor>) -> anyhow::Result<Ph
     let (edge_signal_tx, edge_signal_rx) = mpsc::unbounded_channel();
     let (user_sub_tx, user_sub_rx) =
         mpsc::unbounded_channel::<crate::watchers::clob_user::UserSubCmd>();
+    let (quoter_cmd_tx, quoter_cmd_rx) = mpsc::unbounded_channel::<quoter::QuoterCmd>();
 
     // --- Portfolio actor ---
     let (portfolio_handle, _portfolio_task) = crate::portfolio::spawn_portfolio(cfg.as_ref())
@@ -564,6 +594,64 @@ fn spawn_phase3(cfg: &Arc<Config>, executor: Arc<Executor>) -> anyhow::Result<Ph
         }
     });
 
+    // --- Quoter actor ---
+    //
+    // Dispatch the sink concretely — `run_quoter` is generic over
+    // `S: OrderSink + 'static`, so we monomorphise per mode and skip the
+    // `dyn OrderSink` indirection entirely.
+    //
+    //   paper_mode=true                 → Arc<PaperEngine> sink
+    //   simulation=true && !paper_mode  → no quoter spawned (log-only mode).
+    //                                     We still return the sender so the
+    //                                     main loop can hold it, but since
+    //                                     no consumer exists EdgeSignal sends
+    //                                     would pile up. We deliberately
+    //                                     return `None` for that case so the
+    //                                     main loop falls back to its debug
+    //                                     log drop-path.
+    //   live (both false)               → Arc<Executor> sink
+    let quoter_cmd_tx_opt: Option<QuoterCmdSender> = if cfg.paper_mode {
+        match paper_engine.clone() {
+            Some(paper) => {
+                let qcfg = Arc::clone(cfg);
+                let qportfolio = portfolio_handle.clone();
+                tokio::spawn(async move {
+                    if let Err(e) =
+                        crate::quoter::run_quoter(qcfg.as_ref(), paper, qportfolio, quoter_cmd_rx)
+                            .await
+                    {
+                        tracing::error!("[quoter] fatal: {}", e);
+                    }
+                });
+                Some(quoter_cmd_tx)
+            }
+            None => {
+                tracing::warn!(
+                    "[quoter] paper_mode=true but PaperEngine missing — quoter disabled"
+                );
+                None
+            }
+        }
+    } else if cfg.simulation {
+        tracing::warn!(
+            "[quoter] simulation=true — skipping quoter spawn (EdgeSignals will be logged only)"
+        );
+        drop(quoter_cmd_rx);
+        None
+    } else {
+        let qcfg = Arc::clone(cfg);
+        let qportfolio = portfolio_handle.clone();
+        let qexec = Arc::clone(&executor);
+        tokio::spawn(async move {
+            if let Err(e) =
+                crate::quoter::run_quoter(qcfg.as_ref(), qexec, qportfolio, quoter_cmd_rx).await
+            {
+                tracing::error!("[quoter] fatal: {}", e);
+            }
+        });
+        Some(quoter_cmd_tx)
+    };
+
     Ok(Phase3Handles {
         edge_cmd_tx,
         book_update_rx,
@@ -573,6 +661,7 @@ fn spawn_phase3(cfg: &Arc<Config>, executor: Arc<Executor>) -> anyhow::Result<Ph
         order_state_rx,
         edge_signal_rx,
         portfolio_handle,
+        quoter_cmd_tx: quoter_cmd_tx_opt,
         _user_sub_tx: user_sub_tx,
         _sub_cmd_tx: sub_cmd_tx,
     })
